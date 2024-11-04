@@ -15,7 +15,6 @@ pub struct Message {
     pub created_at: i64,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageResponse {
@@ -121,7 +120,10 @@ mod tests {
                 assert_eq!(messages[0].message_id, "msd_1234");
                 assert_eq!(messages[0].url, Some("https://www.example.com".into()));
                 assert_eq!(messages[1].message_id, "msd_5678");
-                assert_eq!(messages[1].url, Some("https://www.somewhere-else.com".into()));
+                assert_eq!(
+                    messages[1].url,
+                    Some("https://www.somewhere-else.com".into())
+                );
                 assert_eq!(messages[1].deduplicated, Some(true));
             }
             _ => panic!("Expected multiple messages"),

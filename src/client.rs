@@ -1,5 +1,5 @@
 use crate::{errors::QstashError, rate_limited_client::RateLimitedClient};
-use reqwest::{Client, RequestBuilder, Url};
+use reqwest::Url;
 
 pub struct QstashClient {
     pub(crate) client: RateLimitedClient,
@@ -10,8 +10,8 @@ impl QstashClient {
     pub fn default() -> Result<Self, QstashError> {
         // Parse the base URL and handle potential parsing errors
         let base_url = Url::parse("https://qstash.upstash.com")
-        .map_err(|e| QstashError::InvalidBaseUrl(e.to_string()))?;
-        
+            .map_err(|e| QstashError::InvalidBaseUrl(e.to_string()))?;
+
         Ok(QstashClient {
             client: RateLimitedClient::new("".to_string()),
             base_url,

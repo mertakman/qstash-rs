@@ -1,5 +1,4 @@
-use http::header::AUTHORIZATION;
-use reqwest::{header::{HeaderMap, CONTENT_TYPE}, Client, Method, RequestBuilder, Response, StatusCode, Url};
+use reqwest::{header::HeaderMap, Client, Method, RequestBuilder, Response, StatusCode, Url};
 
 use crate::errors::QstashError;
 
