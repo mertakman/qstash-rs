@@ -1,0 +1,8 @@
+# Directories
+target/
+debug/
+release/
+
+# Files
+Cargo.lock
+*.rs.bk
