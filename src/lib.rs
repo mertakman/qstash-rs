@@ -2,6 +2,7 @@
 extern crate serde_json;
 
 pub mod client;
+pub mod dead_letter_queue;
 pub mod errors;
 pub mod events;
 pub mod events_types;

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, pin::Pin};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatCompletionRequest {
@@ -119,3 +119,5 @@ impl ChatCompletionRequest {
         }
     }
 }
+
+pub struct CompletionResponse{}
