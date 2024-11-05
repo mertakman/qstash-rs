@@ -5,14 +5,19 @@ use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 
 impl QstashClient {
-    pub async fn upsert_queue(&self,upsert_request: UpsertQueueRequest) -> Result<(), QstashError> {
+    pub async fn upsert_queue(
+        &self,
+        upsert_request: UpsertQueueRequest,
+    ) -> Result<(), QstashError> {
         let url = self
             .base_url
             .join(&format!("/v2/queues/"))
             .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
 
-        let request = self.client.get_request_builder(Method::POST, url)
-        .json(&upsert_request);
+        let request = self
+            .client
+            .get_request_builder(Method::POST, url)
+            .json(&upsert_request);
 
         self.client.send_request(request).await?;
         Ok(())
