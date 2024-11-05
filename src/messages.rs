@@ -13,27 +13,24 @@ impl QstashClient {
         headers: HeaderMap,
         body: Vec<u8>,
     ) -> Result<MessageResponseResult, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/publish/{}", (destination)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join(&format!("/v2/publish/{}", destination))
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .headers(headers)
             .body(body);
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<MessageResponseResult>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: MessageResponseResult =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
@@ -45,31 +42,28 @@ impl QstashClient {
         headers: HeaderMap,
         body: Vec<u8>,
     ) -> Result<MessageResponseResult, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!(
-                "/v2/enqueue/{}/{}",
-                encode(queue_name),
-                encode(destination)
-            ))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join(&format!(
+                        "/v2/enqueue/{}/{}",
+                        encode(queue_name),
+                        encode(destination)
+                    ))
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .headers(headers)
             .body(body);
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<MessageResponseResult>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: MessageResponseResult =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
@@ -78,70 +72,71 @@ impl QstashClient {
         &self,
         batch_entries: Vec<BatchEntry>,
     ) -> Result<Vec<MessageResponseResult>, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/batch"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join("/v2/batch")
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .json(&batch_entries);
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Vec<MessageResponseResult>>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: Vec<MessageResponseResult> =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
 
     pub async fn get_message(&self, message_id: &str) -> Result<Message, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/messages/{}", encode(message_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join(&format!("/v2/messages/{}", encode(message_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-        let response = self.client.send_request(request).await?;
-
-        let message = response
+        let response = self
+            .client
+            .send_request(request)
+            .await?
             .json::<Message>()
             .await
-            .map_err(QstashError::RequestFailed)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
-        Ok(message)
+        Ok(response)
     }
 
     pub async fn cancel_message(&self, message_id: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/messages/{}", encode(message_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-        let request = self.client.get_request_builder(Method::DELETE, url);
+        let request = self.client.get_request_builder(
+            Method::DELETE,
+            self.base_url
+                .join(&format!("/v2/messages/{}", encode(message_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
+
         self.client.send_request(request).await?;
         Ok(())
     }
 
     pub async fn bulk_cancel_messages(&self, message_ids: &[&str]) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/messages"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let body = json!({
             "messageIds": message_ids,
         });
 
         let request = self
             .client
-            .get_request_builder(Method::DELETE, url)
+            .get_request_builder(
+                Method::DELETE,
+                self.base_url
+                    .join("/v2/messages")
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .json(&body);
 
         self.client.send_request(request).await?;

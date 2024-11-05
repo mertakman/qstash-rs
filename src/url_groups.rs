@@ -11,11 +11,6 @@ impl QstashClient {
         url_group_name: &str,
         endpoints: Vec<Endpoint>,
     ) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let body = json!({
             "endpoints": endpoints,
         })
@@ -23,51 +18,51 @@ impl QstashClient {
 
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .body(body);
+
         self.client.send_request(request).await?;
         Ok(())
     }
 
     pub async fn get_url_group(&self, url_group_name: &str) -> Result<UrlGroup, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/topics/{}", encode(url_group_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join(&format!("/v2/topics/{}", encode(url_group_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<UrlGroup>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: UrlGroup =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
     pub async fn list_url_groups(&self) -> Result<Vec<UrlGroup>, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/topics"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join("/v2/topics")
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Vec<UrlGroup>>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: Vec<UrlGroup> =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
@@ -77,11 +72,6 @@ impl QstashClient {
         url_group_name: &str,
         endpoints: Vec<Endpoint>,
     ) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let body = json!({
             "endpoints": endpoints,
         })
@@ -89,19 +79,26 @@ impl QstashClient {
 
         let request = self
             .client
-            .get_request_builder(Method::DELETE, url)
+            .get_request_builder(
+                Method::DELETE,
+                self.base_url
+                    .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .body(body);
+
         self.client.send_request(request).await?;
         Ok(())
     }
 
     pub async fn remove_url_group(&self, url_group_name: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/topics/{}", encode(url_group_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::DELETE,
+            self.base_url
+                .join(&format!("/v2/topics/{}", encode(url_group_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::DELETE, url);
         self.client.send_request(request).await?;
 
         Ok(())

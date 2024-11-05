@@ -7,7 +7,7 @@ pub enum QstashError {
     InvalidBaseUrl(String),
     InvalidRequestUrl(String),
     RequestFailed(reqwest::Error),
-    ResponseBodyParseError(serde_json::Error),
+    ResponseBodyParseError(reqwest::Error),
     DailyRateLimitExceeded {
         reset: u64,
     },

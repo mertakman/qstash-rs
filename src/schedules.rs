@@ -15,79 +15,73 @@ impl QstashClient {
         headers: HeaderMap,
         body: Vec<u8>,
     ) -> Result<CreateScheduleResponse, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/schedules/{}", destination))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join(&format!("/v2/schedules/{}", destination))
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .headers(headers)
             .body(body);
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<CreateScheduleResponse>()
             .await
-            .map_err(QstashError::RequestFailed)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
-        let response: CreateScheduleResponse =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
         Ok(response)
     }
 
     pub async fn get_schedule(&self, schedule_id: &str) -> Result<Schedule, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/schedules/{}", encode(schedule_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join(&format!("/v2/schedules/{}", encode(schedule_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Schedule>()
             .await
-            .map_err(QstashError::RequestFailed)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
-        let response: Schedule =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
         Ok(response)
     }
 
     pub async fn list_schedules(&self) -> Result<Vec<Schedule>, QstashError> {
-        let url = self
-            .base_url
-            .join("/v2/schedules")
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join("/v2/schedules")
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Vec<Schedule>>()
             .await
-            .map_err(QstashError::RequestFailed)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
-        let response: Vec<Schedule> =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
         Ok(response)
     }
 
     pub async fn remove_schedule(&self, schedule_id: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/schedules/{}", encode(schedule_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
-        let request = self.client.get_request_builder(Method::DELETE, url);
+        let request = self.client.get_request_builder(
+            Method::DELETE,
+            self.base_url
+                .join(&format!("/v2/schedules/{}", encode(schedule_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
         self.client.send_request(request).await?;
 
@@ -95,12 +89,12 @@ impl QstashClient {
     }
 
     pub async fn pause_schedule(&self, schedule_id: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/schedules/{}/pause", encode(schedule_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
-        let request = self.client.get_request_builder(Method::POST, url);
+        let request = self.client.get_request_builder(
+            Method::POST,
+            self.base_url
+                .join(&format!("/v2/schedules/{}/pause", encode(schedule_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
         self.client.send_request(request).await?;
 
@@ -108,12 +102,12 @@ impl QstashClient {
     }
 
     pub async fn resume_schedule(&self, schedule_id: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/schedules/{}/resume", encode(schedule_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
-        let request = self.client.get_request_builder(Method::POST, url);
+        let request = self.client.get_request_builder(
+            Method::POST,
+            self.base_url
+                .join(&format!("/v2/schedules/{}/resume", encode(schedule_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
         self.client.send_request(request).await?;
 

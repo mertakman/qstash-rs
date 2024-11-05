@@ -9,14 +9,14 @@ impl QstashClient {
         &self,
         upsert_request: UpsertQueueRequest,
     ) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let request = self
             .client
-            .get_request_builder(Method::POST, url)
+            .get_request_builder(
+                Method::POST,
+                self.base_url
+                    .join("/v2/queues/")
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .json(&upsert_request);
 
         self.client.send_request(request).await?;
@@ -24,78 +24,75 @@ impl QstashClient {
     }
 
     pub async fn remove_queue(&self, queue_name: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/{}", encode(queue_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::DELETE,
+            self.base_url
+                .join(&format!("/v2/queues/{}", encode(queue_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::DELETE, url);
         self.client.send_request(request).await?;
         Ok(())
     }
 
     pub async fn list_queues(&self) -> Result<Vec<Queue>, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join("/v2/queues/")
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Vec<Queue>>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: Vec<Queue> =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
 
     pub async fn get_queue(&self, queue_name: &str) -> Result<Queue, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/{}/", encode(queue_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join(&format!("/v2/queues/{}/", encode(queue_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<Queue>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: Queue =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
 
     pub async fn pause_queue(&self, queue_name: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/{}/pause", encode(queue_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::POST,
+            self.base_url
+                .join(&format!("/v2/queues/{}/pause", encode(queue_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::POST, url);
         self.client.send_request(request).await?;
         Ok(())
     }
 
     pub async fn resume_queue(&self, queue_name: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/queues/{}/resume", encode(queue_name)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::POST,
+            self.base_url
+                .join(&format!("/v2/queues/{}/resume", encode(queue_name)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::POST, url);
         self.client.send_request(request).await?;
         Ok(())
     }

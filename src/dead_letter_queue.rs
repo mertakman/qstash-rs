@@ -8,54 +8,51 @@ use crate::{client::QstashClient, errors::QstashError};
 
 impl QstashClient {
     pub async fn dlq_list_messages(&self) -> Result<DLQMessagesList, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/dlq/"))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join("/v2/dlq/")
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::GET, url);
-
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<DLQMessagesList>()
             .await
-            .map_err(QstashError::RequestFailed)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
-        let response: DLQMessagesList =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
         Ok(response)
     }
 
     pub async fn dlq_get_message(&self, dlq_id: &str) -> Result<DLQMessage, QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/dlq/{}", encode(dlq_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-        let request = self.client.get_request_builder(Method::GET, url);
+        let request = self.client.get_request_builder(
+            Method::GET,
+            self.base_url
+                .join(&format!("/v2/dlq/{}", encode(dlq_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<DLQMessage>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: DLQMessage =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
 
     pub async fn dlq_delete_message(&self, dlq_id: &str) -> Result<(), QstashError> {
-        let url = self
-            .base_url
-            .join(&format!("/v2/dlq/{}", encode(dlq_id)))
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
+        let request = self.client.get_request_builder(
+            Method::DELETE,
+            self.base_url
+                .join(&format!("/v2/dlq/{}", encode(dlq_id)))
+                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+        );
 
-        let request = self.client.get_request_builder(Method::DELETE, url);
         self.client.send_request(request).await?;
         Ok(())
     }
@@ -64,11 +61,6 @@ impl QstashClient {
         &self,
         dlq_ids: Vec<String>,
     ) -> Result<DLQDeleteMessagesResponse, QstashError> {
-        let url = self
-            .base_url
-            .join("/v2/queues/")
-            .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?;
-
         let body = json!({
             "dlqIds": dlq_ids,
         })
@@ -76,19 +68,21 @@ impl QstashClient {
 
         let request = self
             .client
-            .get_request_builder(Method::DELETE, url)
+            .get_request_builder(
+                Method::DELETE,
+                self.base_url
+                    .join("/v2/queues/")
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
             .body(body);
 
-        let response_body = self
+        let response = self
             .client
             .send_request(request)
             .await?
-            .bytes()
+            .json::<DLQDeleteMessagesResponse>()
             .await
-            .map_err(QstashError::RequestFailed)?;
-
-        let response: DLQDeleteMessagesResponse =
-            serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
+            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
 
         Ok(response)
     }
