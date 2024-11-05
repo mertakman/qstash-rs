@@ -120,4 +120,4 @@ impl ChatCompletionRequest {
     }
 }
 
-pub struct CompletionResponse{}
+pub struct CompletionResponse {}

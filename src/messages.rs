@@ -32,7 +32,6 @@ impl QstashClient {
             .await
             .map_err(QstashError::RequestFailed)?;
 
-        println!("{:?}", response_body.to_vec().to_ascii_lowercase());
         let response: MessageResponseResult =
             serde_json::from_slice(&response_body).map_err(QstashError::ResponseBodyParseError)?;
 
@@ -153,5 +152,4 @@ impl QstashClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 }
