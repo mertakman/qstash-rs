@@ -1,123 +1,240 @@
+use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, pin::Pin};
+use std::cell::RefCell;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-#[derive(Debug, Serialize, Deserialize)]
+use crate::errors::QstashError;
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChatCompletionRequest {
-    /// Name of the model
+    /// Name of the model.
     pub model: String,
 
-    /// One or more chat messages
+    /// One or more chat messages.
     pub messages: Vec<Message>,
 
-    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on frequency
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model’s likelihood to repeat the same line verbatim.
     pub frequency_penalty: Option<f64>,
 
-    /// Modify likelihood of specified tokens appearing in the completion
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub logit_bias: Option<HashMap<String, i32>>,
+    /// Modify the likelihood of specified tokens appearing in the completion.
+    /// Accepts a JSON object that maps tokens (specified by their token ID in the tokenizer) to an associated bias value from -100 to 100.
+    pub logit_bias: Option<std::collections::HashMap<String, f64>>,
 
-    /// Whether to return log probabilities of the output tokens
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Whether to return log probabilities of the output tokens or not. If true, returns the log probabilities of each output token returned in the content of message.
     pub logprobs: Option<bool>,
 
-    /// Number of most likely tokens to return at each position (0-20)
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log probability. `logprobs` must be set to true if this parameter is used.
     pub top_logprobs: Option<u8>,
 
-    /// Maximum number of tokens to generate
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// The maximum number of tokens that can be generated in the chat completion.
     pub max_tokens: Option<u32>,
 
-    /// Number of chat completion choices to generate
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub n: Option<u32>,
+    /// How many chat completion choices to generate for each input message.
+    pub n: Option<u8>,
 
-    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on presence
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model’s likelihood to talk about new topics.
     pub presence_penalty: Option<f64>,
 
-    /// Specifies the required output format
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// An object specifying the format that the model must output.
     pub response_format: Option<ResponseFormat>,
 
-    /// Seed for deterministic sampling
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// This feature is in Beta. If specified, our system will make a best effort to sample deterministically, such that repeated requests with the same seed and parameters should return the same result.
     pub seed: Option<u64>,
 
-    /// Up to 4 sequences where the API will stop generating tokens
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Up to 4 sequences where the API will stop generating further tokens.
     pub stop: Option<Vec<String>>,
 
-    /// If true, partial message deltas will be sent
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// If set, partial message deltas will be sent. Tokens will be sent as data-only server-sent events as they become available, with the stream terminated by a data: [DONE] message.
     pub stream: Option<bool>,
 
-    /// Sampling temperature between 0 and 2
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
     pub temperature: Option<f64>,
 
-    /// Nucleus sampling threshold (0.0 to 1.0)
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with `top_p` probability mass.
     pub top_p: Option<f64>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-    /// The role of the message author (system, assistant, or user)
-    pub role: MessageRole,
+    /// The role of the message author. One of `system`, `assistant`, or `user`.
+    pub role: String,
 
-    /// The content of the message
+    /// The content of the message.
     pub content: String,
 
-    /// Optional name for the participant
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// An optional name for the participant. Provides the model information to differentiate between participants of the same role.
     pub name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum MessageRole {
-    System,
-    Assistant,
-    User,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseFormat {
-    /// Must be one of "text" or "json_object"
-    #[serde(rename = "type")]
-    pub format_type: ResponseFormatType,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum ResponseFormatType {
+pub enum FormatType {
     Text,
     JsonObject,
 }
 
-// Example usage:
-impl ChatCompletionRequest {
-    pub fn new(model: String, messages: Vec<Message>) -> Self {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResponseFormat {
+    /// Must be one of `text` or `json_object`.
+    #[serde(rename = "type")]
+    pub format_type: FormatType,
+}
+
+pub enum ChatCompletionResponse {
+    Stream(StreamResponse),
+    Direct(DirectResponse),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DirectResponse {
+    // A unique identifier for the chat completion
+    pub id: String,
+    // A list of chat completion choices. Can be more than one if n is greater than 1
+    pub choices: Vec<Choice>,
+    // The Unix timestamp (in seconds) of when the chat completion was created
+    pub created: i64,
+    // The model used for the chat completion
+    pub model: String,
+    // This fingerprint represents the backend configuration that the model runs with
+    pub system_fingerprint: String,
+    // The object type, which is always "chat.completion"
+    pub object: String,
+    // Usage statistics for the completion request
+    pub usage: Usage,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Choice {
+    // A chat completion message generated by the model
+    pub message: Message,
+    // The reason the model stopped generating tokens
+    #[serde(rename = "finishReason")]
+    pub finish_reason: String,
+    // The stop string or token id that caused the completion to stop
+    #[serde(rename = "stopReason")]
+    pub stop_reason: Option<String>,
+    // The index of the choice in the list of choices
+    pub index: i32,
+    // Log probability information for the choice
+    pub logprobs: Option<LogProbs>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LogProbs {
+    // A list of message content tokens with log probability information
+    pub content: Vec<TokenInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenInfo {
+    // The token
+    pub token: String,
+    // The log probability of this token
+    pub logprob: f64,
+    // A list of integers representing the UTF-8 bytes representation of the token
+    pub bytes: Option<Vec<i32>>,
+    // List of the most likely tokens and their log probability
+    pub top_logprobs: Vec<TopLogProb>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TopLogProb {
+    // The token
+    pub token: String,
+    // The log probability of this token
+    pub logprob: f64,
+    // A list of integers representing the UTF-8 bytes representation of the token
+    pub bytes: Option<Vec<i32>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Usage {
+    // Number of tokens in the generated completion
+    pub completion_tokens: i32,
+    // Number of tokens in the prompt
+    pub prompt_tokens: i32,
+    // Total number of tokens used in the request (prompt + completion)
+    pub total_tokens: i32,
+}
+
+pub struct StreamResponse {
+    response: Option<reqwest::Response>, // Use RefCell for interior mutability
+    pending: Vec<u8>,
+}
+
+impl StreamResponse {
+    pub fn new(response: reqwest::Response) -> Self {
         Self {
-            model,
-            messages,
-            frequency_penalty: None,
-            logit_bias: None,
-            logprobs: None,
-            top_logprobs: None,
-            max_tokens: None,
-            n: None,
-            presence_penalty: None,
-            response_format: None,
-            seed: None,
-            stop: None,
-            stream: None,
-            temperature: None,
-            top_p: None,
+            response: Some(response),
+            pending: Vec::new(),
         }
+    }
+
+    pub async fn get_next_stream_message(&mut self) -> Result<Option<StreamMessage>, QstashError> {
+        let chunk = self.poll_chunk().await?;
+        
+        todo!()
+    }
+
+    async fn poll_chunk(&mut self) ->  Result<Option<Vec<u8>>, QstashError> {
+        loop {
+            match self.response {
+                Some(ref mut response) => {
+                    let chunk = response
+                    .chunk()
+                    .await
+                    .map_err(QstashError::RequestFailed)?;
+        
+                    match chunk {
+                        Some(chunk) => {
+                            todo!()
+                        }
+                        None => return Ok(None),
+                    }
+                }
+                None => {
+                    return Ok(None);
+                }
+            }
+        };
     }
 }
 
-pub struct CompletionResponse {}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamMessage {
+    // A unique identifier for the chat completion. Each chunk has the same ID
+    pub id: String,
+    // A list of chat completion choices. Can be more than one if n is greater than 1. Can also be empty for the last chunk
+    pub choices: Vec<StreamChoice>,
+    // The Unix timestamp (in seconds) of when the chat completion was created. Each chunk has the same timestamp
+    pub created: i64,
+    // The model used for the chat completion
+    pub model: String,
+    // This fingerprint represents the backend configuration that the model runs with
+    pub system_fingerprint: String,
+    // The object type, which is always "chat.completion.chunk"
+    pub object: String,
+    // Contains a null value except for the last chunk which contains the token usage statistics for the entire request
+    pub usage: Option<Usage>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamChoice {
+    // A chat completion delta generated by streamed model responses
+    pub delta: Delta,
+    // The reason the model stopped generating tokens
+    pub finish_reason: Option<String>,
+    // The index of the choice in the list of choices
+    pub index: i32,
+    // Log probability information for the choice
+    pub logprobs: Option<LogProbs>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Delta {
+    // The role of the author of this message
+    pub role: Option<String>,
+    // The contents of the chunk message
+    pub content: Option<String>,
+}
