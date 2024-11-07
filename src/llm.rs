@@ -21,9 +21,6 @@ impl QstashClient {
             )
             .json(&chat_completion_request);
 
-        if Some(true) == chat_completion_request.stream {
-            println!("Request: {:?}", request);
-        }
         let response = self.client.send_request(request).await?;
 
         match chat_completion_request.stream {

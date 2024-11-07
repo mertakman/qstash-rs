@@ -1,5 +1,4 @@
 use crate::errors::QstashError;
-use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -241,9 +240,8 @@ impl StreamResponse {
                 Some(c) => c,
                 None => return Ok(ChunkType::Done()),
             };
-
             // Now we can mutably borrow self for extract_next_message
-            if let Some(message) = self.extract_next_message(&chunk) {
+            if let Some(message) = self.extract_next_message(&chunk.to_vec()) {
                 match message.as_slice() {
                     b"[DONE]" => {
                         self.response = None;
@@ -256,7 +254,7 @@ impl StreamResponse {
     }
 
     // Takes a chunk of bytes and returns a complete message if available
-    fn extract_next_message(&mut self, chunk: &Bytes) -> Option<Vec<u8>> {
+    fn extract_next_message(&mut self, chunk: &Vec<u8>) -> Option<Vec<u8>> {
         // Append new chunk to existing buffer
         self.buffer.extend_from_slice(chunk);
 

@@ -30,5 +30,4 @@ impl QstashClient {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 }
