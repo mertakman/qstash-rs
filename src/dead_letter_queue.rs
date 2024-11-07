@@ -61,11 +61,6 @@ impl QstashClient {
         &self,
         dlq_ids: Vec<String>,
     ) -> Result<DLQDeleteMessagesResponse, QstashError> {
-        let body = json!({
-            "dlqIds": dlq_ids,
-        })
-        .to_string();
-
         let request = self
             .client
             .get_request_builder(
@@ -74,7 +69,9 @@ impl QstashClient {
                     .join("/v2/queues/")
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
             )
-            .body(body);
+            .json(&json!({
+                "dlqIds": dlq_ids,
+            }));
 
         let response = self
             .client

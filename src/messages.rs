@@ -125,10 +125,6 @@ impl QstashClient {
     }
 
     pub async fn bulk_cancel_messages(&self, message_ids: &[&str]) -> Result<(), QstashError> {
-        let body = json!({
-            "messageIds": message_ids,
-        });
-
         let request = self
             .client
             .get_request_builder(
@@ -137,7 +133,9 @@ impl QstashClient {
                     .join("/v2/messages")
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
             )
-            .json(&body);
+            .json(&json!({
+                "messageIds": message_ids,
+            }));
 
         self.client.send_request(request).await?;
         Ok(())
