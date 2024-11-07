@@ -41,17 +41,4 @@ impl QstashClient {
             }
         }
     }
-
-    pub async fn a(&self) {
-        let a = self.create_chat_completion(todo!()).await.unwrap();
-        match a {
-            ChatCompletionResponse::Direct(d) => {
-                println!("Direct response: {:?}", d);
-            }
-            ChatCompletionResponse::Stream(s) => {
-                let s = s;
-                s.get_next_stream_message().await.unwrap();
-            }
-        }
-    }
 }

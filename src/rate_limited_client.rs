@@ -74,3 +74,142 @@ fn parse_reset_time(headers: &HeaderMap, header_name: &str) -> u64 {
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::Method;
+    use httpmock::prelude::*;
+
+    #[tokio::test]
+    async fn test_send_request_success() {
+        // Arrange
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/test");
+            then.status(200);
+        });
+
+        let client = RateLimitedClient::new("test_api_key".to_string());
+        let url = Url::parse(&format!("{}/test", &server.base_url())).unwrap();
+        let request_builder = client.get_request_builder(Method::GET, url);
+
+        // Act
+        let result = client.send_request(request_builder).await;
+
+        // Assert
+        assert!(result.is_ok());
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_send_request_daily_rate_limit_exceeded() {
+        // Arrange
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/test");
+            then.status(429)
+                .header("RateLimit-Limit", "1000")
+                .header("RateLimit-Reset", "3600");
+        });
+
+        let client = RateLimitedClient::new("test_api_key".to_string());
+        let url = Url::parse(&format!("{}/test", &server.base_url())).unwrap();
+        let request_builder = client.get_request_builder(Method::GET, url);
+
+        // Act
+        let result = client.send_request(request_builder).await;
+
+        // Assert
+        match result {
+            Err(QstashError::DailyRateLimitExceeded { reset }) => assert_eq!(reset, 3600),
+            _ => panic!("Expected DailyRateLimitExceeded error"),
+        }
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_send_request_burst_rate_limit_exceeded() {
+        // Arrange
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/test");
+            then.status(429)
+                .header("Burst-RateLimit-Limit", "100")
+                .header("Burst-RateLimit-Reset", "60");
+        });
+
+        let client = RateLimitedClient::new("test_api_key".to_string());
+        let url = Url::parse(&format!("{}/test", &server.base_url())).unwrap();
+        let request_builder = client.get_request_builder(Method::GET, url);
+
+        // Act
+        let result = client.send_request(request_builder).await;
+
+        // Assert
+        match result {
+            Err(QstashError::BurstRateLimitExceeded { reset }) => assert_eq!(reset, 60),
+            _ => panic!("Expected BurstRateLimitExceeded error"),
+        }
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_send_request_chat_rate_limit_exceeded() {
+        // Arrange
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/test");
+            then.status(429)
+                .header("x-ratelimit-limit-requests", "100")
+                .header("x-ratelimit-reset-requests", "30")
+                .header("x-ratelimit-reset-tokens", "45");
+        });
+
+        let client = RateLimitedClient::new("test_api_key".to_string());
+        let url = Url::parse(&format!("{}/test", &server.base_url())).unwrap();
+        let request_builder = client.get_request_builder(Method::GET, url);
+
+        // Act
+        let result = client.send_request(request_builder).await;
+
+        // Assert
+        match result {
+            Err(QstashError::ChatRateLimitExceeded { reset_requests, reset_tokens }) => {
+                assert_eq!(reset_requests, 30);
+                assert_eq!(reset_tokens, 45);
+            },
+            _ => panic!("Expected ChatRateLimitExceeded error"),
+        }
+        mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_send_request_unspecified_rate_limit_exceeded() {
+        // Arrange
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/test");
+            then.status(429);
+        });
+
+        let client = RateLimitedClient::new("test_api_key".to_string());
+        let url = Url::parse(&format!("{}/test", &server.base_url())).unwrap();
+        let request_builder = client.get_request_builder(Method::GET, url);
+
+        // Act
+        let result = client.send_request(request_builder).await;
+
+        // Assert
+        match result {
+            Err(QstashError::UnspecifiedRateLimitExceeded) => (),
+            _ => panic!("Expected UnspecifiedRateLimitExceeded error"),
+        }
+        mock.assert();
+    }
+}

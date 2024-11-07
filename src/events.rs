@@ -27,3 +27,8 @@ impl QstashClient {
         Ok(response)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
