@@ -29,5 +29,4 @@ impl QstashClient {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}

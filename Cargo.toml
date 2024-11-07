@@ -17,3 +17,6 @@ httpmock = "0.7.0"
 [dev-dependencies]
 tokio = { version="1.41.0", features = ["full"] }
 lambda_runtime = "0.13.0"
+aws-config = "1.5.10"
+aws-sdk-secretsmanager = "1.53.0"
+worker = "0.4.2"

@@ -278,16 +278,15 @@ mod tests {
     use crate::rate_limited_client::RateLimitedClient;
 
     use super::*;
-    use reqwest::{Method, Url};
     use httpmock::prelude::*;
+    use reqwest::{Method, Url};
 
     #[tokio::test]
     async fn test_send_request_success() {
         // Arrange
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
-            when.method(GET)
-                .path("/test");
+            when.method(GET).path("/test");
             then.status(200);
         });
 
@@ -308,8 +307,7 @@ mod tests {
         // Arrange
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
-            when.method(GET)
-                .path("/test");
+            when.method(GET).path("/test");
             then.status(429)
                 .header("RateLimit-Limit", "1000")
                 .header("RateLimit-Reset", "3600");
@@ -335,8 +333,7 @@ mod tests {
         // Arrange
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
-            when.method(GET)
-                .path("/test");
+            when.method(GET).path("/test");
             then.status(429)
                 .header("Burst-RateLimit-Limit", "100")
                 .header("Burst-RateLimit-Reset", "60");
@@ -362,8 +359,7 @@ mod tests {
         // Arrange
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
-            when.method(GET)
-                .path("/test");
+            when.method(GET).path("/test");
             then.status(429)
                 .header("x-ratelimit-limit-requests", "100")
                 .header("x-ratelimit-reset-requests", "30")
@@ -379,10 +375,13 @@ mod tests {
 
         // Assert
         match result {
-            Err(QstashError::ChatRateLimitExceeded { reset_requests, reset_tokens }) => {
+            Err(QstashError::ChatRateLimitExceeded {
+                reset_requests,
+                reset_tokens,
+            }) => {
                 assert_eq!(reset_requests, 30);
                 assert_eq!(reset_tokens, 45);
-            },
+            }
             _ => panic!("Expected ChatRateLimitExceeded error"),
         }
         mock.assert();
@@ -393,8 +392,7 @@ mod tests {
         // Arrange
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
-            when.method(GET)
-                .path("/test");
+            when.method(GET).path("/test");
             then.status(429);
         });
 
