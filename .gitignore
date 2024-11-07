@@ -2,6 +2,8 @@
 target/
 debug/
 release/
+.vscode/
+.idea/
 
 # Files
 Cargo.lock
