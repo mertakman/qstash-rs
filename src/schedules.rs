@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use reqwest::header::HeaderMap;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use urlencoding::encode;
 
 use crate::client::QstashClient;
 use crate::errors::QstashError;
@@ -41,7 +40,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::GET,
             self.base_url
-                .join(&format!("/v2/schedules/{}", encode(schedule_id)))
+                .join(&format!("/v2/schedules/{}", schedule_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -79,7 +78,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::DELETE,
             self.base_url
-                .join(&format!("/v2/schedules/{}", encode(schedule_id)))
+                .join(&format!("/v2/schedules/{}", schedule_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -92,7 +91,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::POST,
             self.base_url
-                .join(&format!("/v2/schedules/{}/pause", encode(schedule_id)))
+                .join(&format!("/v2/schedules/{}/pause", schedule_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -105,7 +104,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::POST,
             self.base_url
-                .join(&format!("/v2/schedules/{}/resume", encode(schedule_id)))
+                .join(&format!("/v2/schedules/{}/resume", schedule_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -171,7 +170,6 @@ mod tests {
     use reqwest::StatusCode;
     use reqwest::Url;
     use schedules::{CreateScheduleResponse, Schedule};
-    use urlencoding::encode;
 
     #[tokio::test]
     async fn test_create_schedule_success() {
@@ -189,7 +187,7 @@ mod tests {
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .body("{\"key\":\"value\"}");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -249,7 +247,7 @@ mod tests {
             when.method(POST)
                 .path("/v2/schedules/https://example.com/destination")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -288,9 +286,9 @@ mod tests {
         };
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/schedules/{}", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_schedule);
         });
@@ -321,7 +319,7 @@ mod tests {
         let schedule_id = "schedule123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/schedules/{}", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -348,9 +346,9 @@ mod tests {
         let schedule_id = "schedule123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/schedules/{}", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -407,7 +405,7 @@ mod tests {
             when.method(GET)
                 .path("/v2/schedules")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_schedules);
         });
@@ -468,7 +466,7 @@ mod tests {
             when.method(GET)
                 .path("/v2/schedules")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -492,9 +490,9 @@ mod tests {
         let schedule_id = "schedule123";
         let remove_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/schedules/{}", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -513,7 +511,7 @@ mod tests {
         let schedule_id = "schedule123";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/schedules/{}", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -540,9 +538,9 @@ mod tests {
         let schedule_id = "schedule123";
         let pause_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/schedules/{}/pause", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}/pause", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -561,7 +559,7 @@ mod tests {
         let schedule_id = "schedule123";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/schedules/{}/pause", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}/pause", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -588,9 +586,9 @@ mod tests {
         let schedule_id = "schedule123";
         let resume_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/schedules/{}/resume", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}/resume", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -609,7 +607,7 @@ mod tests {
         let schedule_id = "schedule123";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/schedules/{}/resume", encode(schedule_id)))
+                .path(format!("/v2/schedules/{}/resume", schedule_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")

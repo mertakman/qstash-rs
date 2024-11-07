@@ -1,6 +1,5 @@
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use urlencoding::encode;
 
 use crate::client::QstashClient;
 use crate::errors::QstashError;
@@ -16,7 +15,7 @@ impl QstashClient {
             .get_request_builder(
                 Method::POST,
                 self.base_url
-                    .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                    .join(&format!("/v2/topics/{}/endpoints", url_group_name))
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
             )
             .json(&json!({
@@ -31,7 +30,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::GET,
             self.base_url
-                .join(&format!("/v2/topics/{}", encode(url_group_name)))
+                .join(&format!("/v2/topics/{}", url_group_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -74,7 +73,7 @@ impl QstashClient {
             .get_request_builder(
                 Method::DELETE,
                 self.base_url
-                    .join(&format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                    .join(&format!("/v2/topics/{}/endpoints", url_group_name))
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
             )
             .json(&json!({
@@ -89,7 +88,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::DELETE,
             self.base_url
-                .join(&format!("/v2/topics/{}", encode(url_group_name)))
+                .join(&format!("/v2/topics/{}", url_group_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -146,7 +145,7 @@ mod tests {
 
         let upsert_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                .path(format!("/v2/topics/{}/endpoints", url_group_name))
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .json_body_obj(&json!({ "endpoints": endpoints }));
@@ -181,7 +180,7 @@ mod tests {
 
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                .path(format!("/v2/topics/{}/endpoints", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -231,7 +230,7 @@ mod tests {
 
         let get_url_group_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
+                .path(format!("/v2/topics/{}", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
@@ -274,7 +273,7 @@ mod tests {
 
         let rate_limit_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
+                .path(format!("/v2/topics/{}", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -430,7 +429,7 @@ mod tests {
 
         let remove_endpoints_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                .path(format!("/v2/topics/{}/endpoints", url_group_name))
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .json_body_obj(&json!({ "endpoints": endpoints }));
@@ -465,7 +464,7 @@ mod tests {
 
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
+                .path(format!("/v2/topics/{}/endpoints", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -498,7 +497,7 @@ mod tests {
 
         let remove_url_group_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
+                .path(format!("/v2/topics/{}", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::OK.as_u16());
         });
@@ -525,7 +524,7 @@ mod tests {
 
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
+                .path(format!("/v2/topics/{}", url_group_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")

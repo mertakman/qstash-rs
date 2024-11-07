@@ -2,7 +2,6 @@ use crate::client::QstashClient;
 use crate::errors::QstashError;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use urlencoding::encode;
 
 impl QstashClient {
     pub async fn upsert_queue(
@@ -27,7 +26,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::DELETE,
             self.base_url
-                .join(&format!("/v2/queues/{}", encode(queue_name)))
+                .join(&format!("/v2/queues/{}", queue_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -58,7 +57,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::GET,
             self.base_url
-                .join(&format!("/v2/queues/{}/", encode(queue_name)))
+                .join(&format!("/v2/queues/{}/", queue_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -77,7 +76,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::POST,
             self.base_url
-                .join(&format!("/v2/queues/{}/pause", encode(queue_name)))
+                .join(&format!("/v2/queues/{}/pause", queue_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -89,7 +88,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::POST,
             self.base_url
-                .join(&format!("/v2/queues/{}/resume", encode(queue_name)))
+                .join(&format!("/v2/queues/{}/resume", queue_name))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -136,7 +135,6 @@ mod tests {
     use queues::{Queue, UpsertQueueRequest};
     use reqwest::StatusCode;
     use reqwest::Url;
-    use urlencoding::encode;
 
     #[tokio::test]
     async fn test_upsert_queue_success() {
@@ -151,7 +149,7 @@ mod tests {
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .json_body_obj(&upsert_request);
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -205,7 +203,7 @@ mod tests {
             when.method(POST)
                 .path("/v2/queues/")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -226,9 +224,9 @@ mod tests {
         let queue_name = "test-queue";
         let remove_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/queues/{}", encode(queue_name)))
+                .path(format!("/v2/queues/{}", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -247,7 +245,7 @@ mod tests {
         let queue_name = "test-queue";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/queues/{}", encode(queue_name)))
+                .path(format!("/v2/queues/{}", queue_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -274,9 +272,9 @@ mod tests {
         let queue_name = "test-queue";
         let invalid_response_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(format!("/v2/queues/{}", encode(queue_name)))
+                .path(format!("/v2/queues/{}", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -314,7 +312,7 @@ mod tests {
             when.method(GET)
                 .path("/v2/queues/")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_queues);
         });
@@ -369,7 +367,7 @@ mod tests {
             when.method(GET)
                 .path("/v2/queues/")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -400,9 +398,9 @@ mod tests {
         };
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/queues/{}/", encode(queue_name)))
+                .path(format!("/v2/queues/{}/", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_queue);
         });
@@ -427,7 +425,7 @@ mod tests {
         let queue_name = "test-queue";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/queues/{}/", encode(queue_name)))
+                .path(format!("/v2/queues/{}/", queue_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -454,9 +452,9 @@ mod tests {
         let queue_name = "test-queue";
         let invalid_response_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(format!("/v2/queues/{}/", encode(queue_name)))
+                .path(format!("/v2/queues/{}/", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -480,9 +478,9 @@ mod tests {
         let queue_name = "test-queue";
         let pause_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/pause", encode(queue_name)))
+                .path(format!("/v2/queues/{}/pause", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -501,7 +499,7 @@ mod tests {
         let queue_name = "test-queue";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/pause", encode(queue_name)))
+                .path(format!("/v2/queues/{}/pause", queue_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -528,9 +526,9 @@ mod tests {
         let queue_name = "test-queue";
         let invalid_response_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/pause", encode(queue_name)))
+                .path(format!("/v2/queues/{}/pause", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -551,9 +549,9 @@ mod tests {
         let queue_name = "test-queue";
         let resume_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/resume", encode(queue_name)))
+                .path(format!("/v2/queues/{}/resume", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -572,7 +570,7 @@ mod tests {
         let queue_name = "test-queue";
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/resume", encode(queue_name)))
+                .path(format!("/v2/queues/{}/resume", queue_name))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -599,9 +597,9 @@ mod tests {
         let queue_name = "test-queue";
         let invalid_response_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(format!("/v2/queues/{}/resume", encode(queue_name)))
+                .path(format!("/v2/queues/{}/resume", queue_name))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });

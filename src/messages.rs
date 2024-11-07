@@ -4,7 +4,6 @@ use crate::client::QstashClient;
 use crate::errors::QstashError;
 use crate::message_types::{BatchEntry, Message, MessageResponseResult};
 use reqwest::header::HeaderMap;
-use urlencoding::encode;
 
 impl QstashClient {
     pub async fn publish_message(
@@ -47,11 +46,7 @@ impl QstashClient {
             .get_request_builder(
                 Method::POST,
                 self.base_url
-                    .join(&format!(
-                        "/v2/enqueue/{}/{}",
-                        encode(queue_name),
-                        encode(destination)
-                    ))
+                    .join(&format!("/v2/enqueue/{}/{}", queue_name, destination))
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
             )
             .headers(headers)
@@ -116,7 +111,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::DELETE,
             self.base_url
-                .join(&format!("/v2/messages/{}", encode(message_id)))
+                .join(&format!("/v2/messages/{}", message_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 
@@ -124,7 +119,14 @@ impl QstashClient {
         Ok(())
     }
 
-    pub async fn bulk_cancel_messages(&self, message_ids: &[&str]) -> Result<(), QstashError> {
+    pub async fn bulk_cancel_messages(&self, message_ids: Vec<String>) -> Result<(), QstashError> {
+        println!(
+            "{}",
+            &json!({
+                "messageIds": message_ids,
+            })
+            .to_string()
+        );
         let request = self
             .client
             .get_request_builder(
@@ -156,7 +158,6 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
     use std::collections::HashMap;
-    use urlencoding::encode;
 
     #[tokio::test]
     async fn test_publish_message_success_single_response() {
@@ -176,7 +177,7 @@ mod tests {
                 .header("Authorization", "Bearer test_api_key")
                 .header("content-type", "application/json")
                 .body("{\"key\":\"value\"}");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -218,7 +219,7 @@ mod tests {
                 .header("Authorization", "Bearer test_api_key")
                 .header("content-type", "application/json")
                 .body("{\"key\":\"value\"}");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -276,7 +277,7 @@ mod tests {
             when.method(POST)
                 .path("/v2/publish/https://example.com/publish")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .body("Invalid JSON");
         });
@@ -310,13 +311,13 @@ mod tests {
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(&format!(
-                    "/v2/enqueue/{}/https%3A%2F%2Fexample.com%2Fenqueue",
-                    encode(queue_name)
+                    "/v2/enqueue/{}/https://example.com/enqueue",
+                    queue_name
                 ))
                 .header("Authorization", "Bearer test_api_key")
                 .header("content-type", "application/json")
                 .body("{\"key\":\"value\"}");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -346,8 +347,8 @@ mod tests {
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(&format!(
-                    "/v2/enqueue/{}/https%3A%2F%2Fexample.com%2Fenqueue",
-                    encode(queue_name)
+                    "/v2/enqueue/{}/https://example.com/enqueue",
+                    queue_name
                 ))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
@@ -382,11 +383,11 @@ mod tests {
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(&format!(
-                    "/v2/enqueue/{}/https%3A%2F%2Fexample.com%2Fenqueue",
-                    encode(queue_name)
+                    "/v2/enqueue/{}/https://example.com/enqueue",
+                    queue_name
                 ))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .body("Invalid JSON");
         });
@@ -472,7 +473,7 @@ mod tests {
                         "body": "Message 2"
                     }
                 ]));
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body(json!([
                     {
@@ -560,7 +561,7 @@ mod tests {
             when.method(POST)
                 .path("/v2/batch")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .body("Invalid JSON");
         });
@@ -599,9 +600,9 @@ mod tests {
         };
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", encode(message_id)))
+                .path(&format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_message);
         });
@@ -624,7 +625,7 @@ mod tests {
         let message_id = "msg123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", encode(message_id)))
+                .path(&format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -651,9 +652,9 @@ mod tests {
         let message_id = "msg123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", encode(message_id)))
+                .path(&format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .body("Invalid JSON");
         });
@@ -677,9 +678,9 @@ mod tests {
         let message_id = "msg123";
         let cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(&format!("/v2/messages/{}", encode(message_id)))
+                .path(&format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(204);
+            then.status(StatusCode::NO_CONTENT.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -698,7 +699,7 @@ mod tests {
         let message_id = "msg123";
         let cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(&format!("/v2/messages/{}", encode(message_id)))
+                .path(&format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -722,7 +723,11 @@ mod tests {
     #[tokio::test]
     async fn test_bulk_cancel_messages_success() {
         let server = MockServer::start();
-        let message_ids = ["msg123", "msg124", "msg125"];
+        let message_ids = [
+            "msg123".to_string(),
+            "msg124".to_string(),
+            "msg125".to_string(),
+        ];
         let bulk_cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path("/v2/messages")
@@ -730,7 +735,7 @@ mod tests {
                 .json_body(json!({
                     "messageIds": ["msg123", "msg124", "msg125"]
                 }));
-            then.status(204);
+            then.status(StatusCode::NO_CONTENT.as_u16());
         });
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
@@ -738,7 +743,7 @@ mod tests {
             .api_key("test_api_key")
             .build()
             .expect("Failed to build QstashClient");
-        let result = client.bulk_cancel_messages(&message_ids).await;
+        let result = client.bulk_cancel_messages(message_ids.to_vec()).await;
         bulk_cancel_mock.assert();
         assert!(result.is_ok());
     }
@@ -746,7 +751,11 @@ mod tests {
     #[tokio::test]
     async fn test_bulk_cancel_messages_rate_limit_error() {
         let server = MockServer::start();
-        let message_ids = ["msg123", "msg124", "msg125"];
+        let message_ids = [
+            "msg123".to_string(),
+            "msg124".to_string(),
+            "msg125".to_string(),
+        ];
         let bulk_cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path("/v2/messages")
@@ -762,7 +771,7 @@ mod tests {
             .api_key("test_api_key")
             .build()
             .expect("Failed to build QstashClient");
-        let result = client.bulk_cancel_messages(&message_ids).await;
+        let result = client.bulk_cancel_messages(message_ids.to_vec()).await;
         bulk_cancel_mock.assert();
         assert!(matches!(
             result,
@@ -790,7 +799,7 @@ mod tests {
                 .header("content-type", "application/json")
                 .header("X-Custom-Header", "CustomValue")
                 .body("{\"key\":\"value\"}");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -824,14 +833,14 @@ mod tests {
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(&format!(
-                    "/v2/enqueue/{}/https%3A%2F%2Fexample.com%2Fenqueue",
-                    encode(queue_name)
+                    "/v2/enqueue/{}/https://example.com/enqueue",
+                    queue_name
                 ))
                 .header("Authorization", "Bearer test_api_key")
                 .header("content-type", "text/plain")
                 .header("X-Another-Header", "AnotherValue")
                 .body("Enqueue message");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
                 .json_body_obj(&expected_response);
         });

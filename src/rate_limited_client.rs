@@ -36,6 +36,8 @@ impl RateLimitedClient {
                     return Err(handle_rate_limit_error(&response));
                 }
             }
+
+            println!("{:?}", response.bytes().await.unwrap());
             return Err(QstashError::RequestFailed(err));
         }
 
@@ -87,7 +89,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
             when.method(GET).path("/test");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
 
         let client = RateLimitedClient::new("test_api_key".to_string());
@@ -108,7 +110,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
             when.method(GET).path("/test");
-            then.status(429)
+            then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
                 .header("RateLimit-Reset", "3600");
         });
@@ -134,7 +136,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
             when.method(GET).path("/test");
-            then.status(429)
+            then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("Burst-RateLimit-Limit", "100")
                 .header("Burst-RateLimit-Reset", "60");
         });
@@ -160,7 +162,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
             when.method(GET).path("/test");
-            then.status(429)
+            then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("x-ratelimit-limit-requests", "100")
                 .header("x-ratelimit-reset-requests", "30")
                 .header("x-ratelimit-reset-tokens", "45");
@@ -193,7 +195,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let mock = server.mock(|when, then| {
             when.method(GET).path("/test");
-            then.status(429);
+            then.status(StatusCode::TOO_MANY_REQUESTS.as_u16());
         });
 
         let client = RateLimitedClient::new("test_api_key".to_string());

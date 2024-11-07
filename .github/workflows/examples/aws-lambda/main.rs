@@ -54,7 +54,11 @@ impl App {
     }
 
     async fn func_handler(&self, event: LambdaEvent<Request>) -> Result<Response, Error> {
-        match self.qstash_client.get_message(&event.payload.message_id).await {
+        match self
+            .qstash_client
+            .get_message(&event.payload.message_id)
+            .await
+        {
             Ok(message) => Ok(Response {
                 message: json!({ "message": message }).to_string(),
             }),
@@ -65,7 +69,10 @@ impl App {
                     Some(StatusCode::INTERNAL_SERVER_ERROR) => "Internal server error",
                     _ => "Unknown error",
                 };
-                Err(Box::new(std::io::Error::new(ErrorKind::Other, error_message)))
+                Err(Box::new(std::io::Error::new(
+                    ErrorKind::Other,
+                    error_message,
+                )))
             }
             Err(e) => Err(Box::new(std::io::Error::new(
                 ErrorKind::Other,

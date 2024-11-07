@@ -99,7 +99,7 @@ mod tests {
                 .query_param("count", "100")
                 .query_param("order", "desc")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -197,7 +197,7 @@ mod tests {
                 .query_param("count", "100")
                 .query_param("order", "desc")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });

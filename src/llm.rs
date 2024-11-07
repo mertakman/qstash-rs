@@ -115,7 +115,7 @@ mod tests {
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_response);
         });
@@ -218,7 +218,7 @@ mod tests {
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
@@ -271,7 +271,7 @@ mod tests {
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body(stream_response);
         });
@@ -384,7 +384,7 @@ mod tests {
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON\n\n");
         });
@@ -441,7 +441,7 @@ mod tests {
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body(stream_response);
         });
