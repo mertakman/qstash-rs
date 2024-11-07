@@ -1,10 +1,6 @@
-use futures::stream::Stream;
-use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::task::{Context, Poll};
-
 use crate::errors::QstashError;
+use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChatCompletionRequest {
@@ -158,49 +154,6 @@ pub struct Usage {
     pub total_tokens: i32,
 }
 
-pub struct StreamResponse {
-    response: Option<reqwest::Response>, // Use RefCell for interior mutability
-    pending: Vec<u8>,
-}
-
-impl StreamResponse {
-    pub fn new(response: reqwest::Response) -> Self {
-        Self {
-            response: Some(response),
-            pending: Vec::new(),
-        }
-    }
-
-    pub async fn get_next_stream_message(&mut self) -> Result<Option<StreamMessage>, QstashError> {
-        let chunk = self.poll_chunk().await?;
-        
-        todo!()
-    }
-
-    async fn poll_chunk(&mut self) ->  Result<Option<Vec<u8>>, QstashError> {
-        loop {
-            match self.response {
-                Some(ref mut response) => {
-                    let chunk = response
-                    .chunk()
-                    .await
-                    .map_err(QstashError::RequestFailed)?;
-        
-                    match chunk {
-                        Some(chunk) => {
-                            todo!()
-                        }
-                        None => return Ok(None),
-                    }
-                }
-                None => {
-                    return Ok(None);
-                }
-            }
-        };
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StreamMessage {
     // A unique identifier for the chat completion. Each chunk has the same ID
@@ -237,4 +190,149 @@ pub struct Delta {
     pub role: Option<String>,
     // The contents of the chunk message
     pub content: Option<String>,
+}
+
+enum ChunkType {
+    Message(Vec<u8>),
+    Done(),
+}
+
+pub struct StreamResponse {
+    response: Option<reqwest::Response>, // Use RefCell for interior mutability
+    buffer: Vec<u8>,
+}
+
+impl StreamResponse {
+    pub fn new(response: reqwest::Response) -> Self {
+        Self {
+            response: Some(response),
+            buffer: Vec::new(),
+        }
+    }
+
+    pub fn default() -> Self {
+        Self {
+            response: None,
+            buffer: Vec::new(),
+        }
+    }
+
+    pub async fn get_next_stream_message(&mut self) -> Result<Option<StreamMessage>, QstashError> {
+        let chunk = self.poll_chunk().await?;
+        match chunk {
+            ChunkType::Message(data) => {
+                let message = serde_json::from_slice(&data).map_err(QstashError::ResponseStreamParseError)?;
+                Ok(Some(message))
+            }
+            ChunkType::Done() => Ok(None),
+        }
+    }
+
+    async fn poll_chunk(&mut self) -> Result<ChunkType, QstashError> {
+        loop {
+            let response = match &mut self.response {
+                Some(r) => r,
+                None => return Ok(ChunkType::Done()),
+            };
+
+            // Get the next chunk
+            let chunk = match response.chunk().await.map_err(QstashError::RequestFailed)? {
+                Some(c) => c,
+                None => return Ok(ChunkType::Done()),
+            };
+
+            // Now we can mutably borrow self for extract_next_message
+            if let Some(message) = self.extract_next_message(&chunk) {
+                match message.as_slice() {
+                    b"[DONE]" => return Ok(ChunkType::Done()),
+                    _ => return Ok(ChunkType::Message(message)),
+                }
+            }
+        }
+    }
+
+    // Takes a chunk of bytes and returns a complete message if available
+    fn extract_next_message(&mut self, chunk: &Bytes) -> Option<Vec<u8>> {
+        // Append new chunk to existing buffer
+        self.buffer.extend_from_slice(chunk);
+
+        // Look for delimiter
+        if let Some(msg_end) = self.buffer.windows(2).position(|w| w == b"\n\n") {
+            // Extract the message (excluding delimiter)
+            let message = self.buffer[..msg_end].to_vec();
+
+            // Remove the processed message and delimiter from buffer
+            self.buffer = self.buffer[msg_end + 2..].to_vec();
+
+            Some(message)
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_single_complete_message() {
+        let mut processor = StreamResponse::default();
+        let chunk = Bytes::from("Hello\n\nWorld");
+
+        let message = processor.extract_next_message(&chunk);
+        assert_eq!(message, Some(b"Hello".to_vec()));
+        assert_eq!(processor.buffer, b"World");
+    }
+
+    #[test]
+    fn test_message_in_multiple_chunks() {
+        let mut processor = StreamResponse::default();
+
+        assert_eq!(processor.extract_next_message(&Bytes::from("Hel")), None);
+        assert_eq!(processor.extract_next_message(&Bytes::from("lo Wo")), None);
+        assert_eq!(
+            processor.extract_next_message(&Bytes::from("rld\n\nNext")),
+            Some(b"Hello World".to_vec())
+        );
+        assert_eq!(processor.buffer, b"Next");
+    }
+
+    #[test]
+    fn test_multiple_messages_in_single_chunk() {
+        let mut processor = StreamResponse::default();
+        let chunk = Bytes::from("First\n\nSecond\n\nThird");
+
+        assert_eq!(
+            processor.extract_next_message(&chunk),
+            Some(b"First".to_vec())
+        );
+        assert_eq!(processor.buffer, b"Second\n\nThird");
+
+        assert_eq!(
+            processor.extract_next_message(&Bytes::from("")),
+            Some(b"Second".to_vec())
+        );
+        assert_eq!(processor.buffer, b"Third");
+    }
+
+    #[test]
+    fn test_empty_message() {
+        let mut processor = StreamResponse::default();
+
+        assert_eq!(
+            processor.extract_next_message(&Bytes::from("\n\nAfter")),
+            Some(b"".to_vec())
+        );
+        assert_eq!(processor.buffer, b"After");
+    }
+
+    #[test]
+    fn test_no_complete_message() {
+        let mut processor = StreamResponse::default();
+
+        assert_eq!(processor.extract_next_message(&Bytes::from("Hello")), None);
+        assert_eq!(processor.extract_next_message(&Bytes::from(" World")), None);
+        assert_eq!(processor.buffer, b"Hello World");
+    }
 }

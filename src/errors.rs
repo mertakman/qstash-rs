@@ -8,6 +8,7 @@ pub enum QstashError {
     InvalidRequestUrl(String),
     RequestFailed(reqwest::Error),
     ResponseBodyParseError(reqwest::Error),
+    ResponseStreamParseError(serde_json::Error),
     DailyRateLimitExceeded {
         reset: u64,
     },
@@ -30,6 +31,9 @@ impl fmt::Display for QstashError {
             QstashError::RequestFailed(err) => write!(f, "Request failed: {}", err),
             QstashError::ResponseBodyParseError(err) => {
                 write!(f, "Failed to parse response body: {}", err)
+            }
+            QstashError::ResponseStreamParseError(err) => {
+                write!(f, "Failed to parse response stream: {}", err)
             }
             QstashError::DailyRateLimitExceeded { reset } => {
                 write!(f, "Daily rate limit exceeded. Retry after: {}", reset)
@@ -60,6 +64,7 @@ impl error::Error for QstashError {
             QstashError::InvalidRequestUrl(_) => None,
             QstashError::RequestFailed(err) => Some(err),
             QstashError::ResponseBodyParseError(err) => Some(err),
+            QstashError::ResponseStreamParseError(err) => Some(err),
             QstashError::DailyRateLimitExceeded { .. } => None,
             QstashError::BurstRateLimitExceeded { .. } => None,
             QstashError::ChatRateLimitExceeded { .. } => None,
