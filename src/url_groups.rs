@@ -152,7 +152,7 @@ mod tests {
                 .json_body_obj(&json!({ "endpoints": endpoints }));
             then.status(StatusCode::OK.as_u16());
         });
-            
+
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
