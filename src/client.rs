@@ -8,7 +8,7 @@ pub struct QstashClient {
 
 impl QstashClient {
     pub fn default() -> Result<Self, QstashError> {
-        let base_url = Url::parse("https://qstash.upstash.com")
+        let base_url = Url::parse("https://qstash.upstash.io")
             .map_err(|e| QstashError::InvalidBaseUrl(e.to_string()))?;
 
         Ok(QstashClient {

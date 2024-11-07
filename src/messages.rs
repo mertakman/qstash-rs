@@ -97,7 +97,7 @@ impl QstashClient {
         let request = self.client.get_request_builder(
             Method::GET,
             self.base_url
-                .join(&format!("/v2/messages/{}", encode(message_id)))
+                .join(&format!("/v2/messages/{}", message_id))
                 .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
         );
 

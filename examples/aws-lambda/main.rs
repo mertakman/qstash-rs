@@ -54,40 +54,23 @@ impl App {
     }
 
     async fn func_handler(&self, event: LambdaEvent<Request>) -> Result<Response, Error> {
-        match self
-            .qstash_client
-            .get_message(&event.payload.message_id)
-            .await
-        {
-            Ok(message) => {
-                return Ok(Response {
-                    message: json!({ "message": message }).to_string(),
-                })
+        match self.qstash_client.get_message(&event.payload.message_id).await {
+            Ok(message) => Ok(Response {
+                message: json!({ "message": message }).to_string(),
+            }),
+            Err(QstashError::RequestFailed(err)) => {
+                let error_message = match err.status() {
+                    Some(StatusCode::BAD_REQUEST) => "Bad request",
+                    Some(StatusCode::NOT_FOUND) => "Message not found",
+                    Some(StatusCode::INTERNAL_SERVER_ERROR) => "Internal server error",
+                    _ => "Unknown error",
+                };
+                Err(Box::new(std::io::Error::new(ErrorKind::Other, error_message)))
             }
-            Err(e) => match e {
-                QstashError::RequestFailed(err) => match err.status() {
-                    Some(StatusCode::BAD_REQUEST) => Err(Box::new(std::io::Error::new(
-                        ErrorKind::Other,
-                        "Bad request",
-                    ))),
-                    Some(StatusCode::NOT_FOUND) => Err(Box::new(std::io::Error::new(
-                        ErrorKind::NotFound,
-                        "Message not found",
-                    ))),
-                    Some(StatusCode::INTERNAL_SERVER_ERROR) => Err(Box::new(std::io::Error::new(
-                        ErrorKind::Other,
-                        "Internal server error",
-                    ))),
-                    _ => Err(Box::new(std::io::Error::new(
-                        ErrorKind::Other,
-                        format!("Error getting message: {}", err),
-                    ))),
-                },
-                _ => Err(Box::new(std::io::Error::new(
-                    ErrorKind::Other,
-                    format!("Error getting message: {}", e),
-                ))),
-            },
+            Err(e) => Err(Box::new(std::io::Error::new(
+                ErrorKind::Other,
+                format!("Error getting message: {}", e),
+            ))),
         }
     }
 }
