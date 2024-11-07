@@ -8,7 +8,6 @@ pub struct QstashClient {
 
 impl QstashClient {
     pub fn default() -> Result<Self, QstashError> {
-        // Parse the base URL and handle potential parsing errors
         let base_url = Url::parse("https://qstash.upstash.com")
             .map_err(|e| QstashError::InvalidBaseUrl(e.to_string()))?;
 
@@ -19,9 +18,7 @@ impl QstashClient {
     }
 
     pub fn new(api_key: String) -> Result<Self, QstashError> {
-        // Create a default instance
         let mut qstash_client = QstashClient::default()?;
-        // Create rate limited client with API Key
         qstash_client.client = RateLimitedClient::new(api_key);
 
         Ok(qstash_client)

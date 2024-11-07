@@ -109,7 +109,7 @@ pub struct UrlGroup {
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct Endpoint {
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
     url: String,
