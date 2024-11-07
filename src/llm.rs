@@ -299,6 +299,8 @@ mod tests {
             messages[1].choices[0].delta.content,
             Some(" World".to_string())
         );
+
+        drop(stream_mock);
     }
 
     #[tokio::test]
@@ -467,5 +469,7 @@ mod tests {
             messages[1].choices[0].delta.content,
             Some(" World".to_string())
         );
+
+        drop(stream_mock);
     }
 }

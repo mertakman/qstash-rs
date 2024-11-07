@@ -10,6 +10,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     let _ = client;
-    
+
     Ok(())
 }

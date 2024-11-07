@@ -179,7 +179,7 @@ mod tests {
         let destination = "https://example.com/destination";
         let mut headers = HeaderMap::new();
         headers.insert("Content-Type", "application/json".parse().unwrap());
-        let body = b"{\"key\":\"value\"}".to_vec();
+        let upsert_body = b"{\"key\":\"value\"}".to_vec();
         let expected_response = CreateScheduleResponse {
             schedule_id: "schedule123".to_string(),
         };
@@ -199,7 +199,6 @@ mod tests {
             .api_key("test_api_key")
             .build()
             .expect("Failed to build QstashClient");
-        let upsert_body = b"{\"key\":\"value\"}".to_vec();
         let result = client
             .create_schedule(destination, headers, upsert_body)
             .await;

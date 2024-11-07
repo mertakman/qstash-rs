@@ -3,7 +3,7 @@ use serde::de::{self};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Message {
     pub message_id: String,
@@ -15,7 +15,7 @@ pub struct Message {
     pub created_at: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MessageResponse {
     pub message_id: String,
@@ -25,7 +25,7 @@ pub struct MessageResponse {
     pub deduplicated: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum MessageResponseResult {
     SingleResponse(MessageResponse),
