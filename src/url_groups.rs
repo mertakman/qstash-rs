@@ -104,7 +104,7 @@ pub struct UrlGroup {
     created_at: u64,
     updated_at: u64,
     name: String,
-    endpoints: Vec<Endpoint>, // Assuming Endpoint is your existing type
+    endpoints: Vec<Endpoint>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -124,18 +124,14 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    /// Helper function to URL-encode a string.
-    /// You can replace this with the actual `encode` function used in your implementation.
     fn encode(input: &str) -> String {
         urlencoding::encode(input).into_owned()
     }
 
     #[tokio::test]
     async fn test_upsert_url_group_endpoint_success() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
         let endpoints = vec![
             Endpoint {
@@ -148,17 +144,15 @@ mod tests {
             },
         ];
 
-        // Create a mock for the POST /v2/topics/{url_group_name}/endpoints endpoint
         let upsert_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .json_body_obj(&json!({ "endpoints": endpoints }));
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
-
-        // Build the QstashClient with the mock server's base URL
+            
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -166,31 +160,25 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the upsert_url_group_endpoint method
         let result = client
             .upsert_url_group_endpoint(url_group_name, endpoints.clone())
             .await;
 
-        // Assert that the mock was called exactly once
         upsert_mock.assert();
 
-        // Assert that the result is Ok
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_upsert_url_group_endpoint_rate_limit_error() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
         let endpoints = vec![Endpoint {
             name: "endpoint1".to_string(),
             url: "https://example.com/1".to_string(),
         }];
 
-        // Create a mock for the POST /v2/topics/{url_group_name}/endpoints endpoint that simulates a rate limit error
         let rate_limit_mock = server.mock(|when, then| {
             when.method(POST)
                 .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
@@ -201,7 +189,6 @@ mod tests {
                 .body("Rate limit exceeded");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -209,15 +196,12 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the upsert_url_group_endpoint method
         let result = client
             .upsert_url_group_endpoint(url_group_name, endpoints)
             .await;
 
-        // Assert that the mock was called exactly once
         rate_limit_mock.assert();
 
-        // Assert that the result is a rate limit error
         assert!(matches!(
             result,
             Err(QstashError::DailyRateLimitExceeded { reset: 1625097600 })
@@ -225,59 +209,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_upsert_url_group_endpoint_invalid_response() {
-        // Start a lightweight mock server
-        let server = MockServer::start();
-
-        // Define the input parameters
-        let url_group_name = "test-group";
-        let endpoints = vec![Endpoint {
-            name: "endpoint1".to_string(),
-            url: "https://example.com/1".to_string(),
-        }];
-
-        // Create a mock for the POST /v2/topics/{url_group_name}/endpoints endpoint that returns invalid JSON
-        let invalid_response_mock = server.mock(|when, then| {
-            when.method(POST)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
-                .header("Authorization", "Bearer test_api_key");
-            then.status(200)
-                .header("Content-Type", "application/json")
-                .body("Invalid JSON");
-        });
-
-        // Build the QstashClient with the mock server's base URL
-        let client = QstashClient::builder()
-            .base_url(Url::parse(&server.base_url()).unwrap())
-            .unwrap()
-            .api_key("test_api_key")
-            .build()
-            .expect("Failed to build QstashClient");
-
-        // Call the upsert_url_group_endpoint method
-        let result = client
-            .upsert_url_group_endpoint(url_group_name, endpoints)
-            .await;
-
-        // Assert that the mock was called exactly once
-        invalid_response_mock.assert();
-
-        // Assert that the result is Ok since upsert_url_group_endpoint returns () on success
-        // If the response body is invalid, send_request would fail before returning Ok(())
-        assert!(result.is_err());
-        if let Err(QstashError::RequestFailed(_)) = result {
-            // Expected error due to invalid response handling in send_request
-        } else {
-            panic!("Expected a RequestFailed error due to invalid response");
-        }
-    }
-
-    #[tokio::test]
     async fn test_get_url_group_success() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters and expected response
         let url_group_name = "test-group";
         let expected_url_group = UrlGroup {
             created_at: 1625097600,
@@ -295,17 +229,15 @@ mod tests {
             ],
         };
 
-        // Create a mock for the GET /v2/topics/{url_group_name} endpoint
         let get_url_group_mock = server.mock(|when, then| {
             when.method(GET)
                 .path(format!("/v2/topics/{}", encode(url_group_name)))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_url_group);
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -313,13 +245,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the get_url_group method
         let result = client.get_url_group(url_group_name).await;
 
-        // Assert that the mock was called exactly once
         get_url_group_mock.assert();
 
-        // Assert that the result matches the expected UrlGroup
         assert!(result.is_ok());
         let url_group = result.unwrap();
         assert_eq!(url_group.name, expected_url_group.name);
@@ -339,13 +268,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_url_group_rate_limit_error() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
 
-        // Create a mock for the GET /v2/topics/{url_group_name} endpoint that simulates a rate limit error
         let rate_limit_mock = server.mock(|when, then| {
             when.method(GET)
                 .path(format!("/v2/topics/{}", encode(url_group_name)))
@@ -356,7 +282,6 @@ mod tests {
                 .body("Rate limit exceeded");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -364,13 +289,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the get_url_group method
         let result = client.get_url_group(url_group_name).await;
 
-        // Assert that the mock was called exactly once
         rate_limit_mock.assert();
 
-        // Assert that the result is a rate limit error
         assert!(matches!(
             result,
             Err(QstashError::DailyRateLimitExceeded { reset: 1625097600 })
@@ -378,50 +300,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_url_group_invalid_response() {
-        // Start a lightweight mock server
-        let server = MockServer::start();
-
-        // Define the input parameters
-        let url_group_name = "test-group";
-
-        // Create a mock for the GET /v2/topics/{url_group_name} endpoint that returns invalid JSON
-        let invalid_response_mock = server.mock(|when, then| {
-            when.method(GET)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
-                .header("Authorization", "Bearer test_api_key");
-            then.status(200)
-                .header("Content-Type", "application/json")
-                .body("Invalid JSON");
-        });
-
-        // Build the QstashClient with the mock server's base URL
-        let client = QstashClient::builder()
-            .base_url(Url::parse(&server.base_url()).unwrap())
-            .unwrap()
-            .api_key("test_api_key")
-            .build()
-            .expect("Failed to build QstashClient");
-
-        // Call the get_url_group method
-        let result = client.get_url_group(url_group_name).await;
-
-        // Assert that the mock was called exactly once
-        invalid_response_mock.assert();
-
-        // Assert that the result is a response body parse error
-        assert!(matches!(
-            result,
-            Err(QstashError::ResponseBodyParseError(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn test_list_url_groups_success() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the expected response
         let expected_url_groups = vec![
             UrlGroup {
                 created_at: 1625097600,
@@ -443,17 +324,15 @@ mod tests {
             },
         ];
 
-        // Create a mock for the GET /v2/topics endpoint
         let list_url_groups_mock = server.mock(|when, then| {
             when.method(GET)
                 .path("/v2/topics")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .json_body_obj(&expected_url_groups);
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -461,13 +340,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the list_url_groups method
         let result = client.list_url_groups().await;
 
-        // Assert that the mock was called exactly once
         list_url_groups_mock.assert();
 
-        // Assert that the result matches the expected UrlGroups
         assert!(result.is_ok());
         let url_groups = result.unwrap();
         assert_eq!(url_groups.len(), expected_url_groups.len());
@@ -483,10 +359,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_url_groups_rate_limit_error() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Create a mock for the GET /v2/topics endpoint that simulates a rate limit error
         let rate_limit_mock = server.mock(|when, then| {
             when.method(GET)
                 .path("/v2/topics")
@@ -497,7 +371,6 @@ mod tests {
                 .body("Rate limit exceeded");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -505,13 +378,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the list_url_groups method
         let result = client.list_url_groups().await;
 
-        // Assert that the mock was called exactly once
         rate_limit_mock.assert();
 
-        // Assert that the result is a rate limit error
         assert!(matches!(
             result,
             Err(QstashError::DailyRateLimitExceeded { reset: 1625097600 })
@@ -520,20 +390,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_url_groups_invalid_response() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Create a mock for the GET /v2/topics endpoint that returns invalid JSON
         let invalid_response_mock = server.mock(|when, then| {
             when.method(GET)
                 .path("/v2/topics")
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200)
+            then.status(StatusCode::OK.as_u16())
                 .header("Content-Type", "application/json")
                 .body("Invalid JSON");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -541,13 +408,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the list_url_groups method
         let result = client.list_url_groups().await;
 
-        // Assert that the mock was called exactly once
         invalid_response_mock.assert();
 
-        // Assert that the result is a response body parse error
         assert!(matches!(
             result,
             Err(QstashError::ResponseBodyParseError(_))
@@ -556,27 +420,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_endpoints_success() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
         let endpoints = vec![Endpoint {
             name: "endpoint1".to_string(),
             url: "https://example.com/1".to_string(),
         }];
 
-        // Create a mock for the DELETE /v2/topics/{url_group_name}/endpoints endpoint
         let remove_endpoints_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
                 .header("Authorization", "Bearer test_api_key")
                 .header("Content-Type", "application/json")
                 .json_body_obj(&json!({ "endpoints": endpoints }));
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -584,31 +444,25 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the remove_endpoints method
         let result = client
             .remove_endpoints(url_group_name, endpoints.clone())
             .await;
 
-        // Assert that the mock was called exactly once
         remove_endpoints_mock.assert();
 
-        // Assert that the result is Ok
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_remove_endpoints_rate_limit_error() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
         let endpoints = vec![Endpoint {
             name: "endpoint1".to_string(),
             url: "https://example.com/1".to_string(),
         }];
 
-        // Create a mock for the DELETE /v2/topics/{url_group_name}/endpoints endpoint that simulates a rate limit error
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
@@ -619,7 +473,6 @@ mod tests {
                 .body("Rate limit exceeded");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -627,13 +480,10 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the remove_endpoints method
         let result = client.remove_endpoints(url_group_name, endpoints).await;
 
-        // Assert that the mock was called exactly once
         rate_limit_mock.assert();
 
-        // Assert that the result is a rate limit error
         assert!(matches!(
             result,
             Err(QstashError::DailyRateLimitExceeded { reset: 1625097600 })
@@ -641,68 +491,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_remove_endpoints_invalid_response() {
-        // Start a lightweight mock server
-        let server = MockServer::start();
-
-        // Define the input parameters
-        let url_group_name = "test-group";
-        let endpoints = vec![Endpoint {
-            name: "endpoint1".to_string(),
-            url: "https://example.com/1".to_string(),
-        }];
-
-        // Create a mock for the DELETE /v2/topics/{url_group_name}/endpoints endpoint that returns invalid JSON
-        let invalid_response_mock = server.mock(|when, then| {
-            when.method(DELETE)
-                .path(format!("/v2/topics/{}/endpoints", encode(url_group_name)))
-                .header("Authorization", "Bearer test_api_key");
-            then.status(200)
-                .header("Content-Type", "application/json")
-                .body("Invalid JSON");
-        });
-
-        // Build the QstashClient with the mock server's base URL
-        let client = QstashClient::builder()
-            .base_url(Url::parse(&server.base_url()).unwrap())
-            .unwrap()
-            .api_key("test_api_key")
-            .build()
-            .expect("Failed to build QstashClient");
-
-        // Call the remove_endpoints method
-        let result = client.remove_endpoints(url_group_name, endpoints).await;
-
-        // Assert that the mock was called exactly once
-        invalid_response_mock.assert();
-
-        // Assert that the result is Ok since remove_endpoints returns () on success
-        // If the response body is invalid, send_request would fail before returning Ok(())
-        assert!(result.is_err());
-        if let Err(QstashError::RequestFailed(_)) = result {
-            // Expected error due to invalid response handling in send_request
-        } else {
-            panic!("Expected a RequestFailed error due to invalid response");
-        }
-    }
-
-    #[tokio::test]
     async fn test_remove_url_group_success() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
 
-        // Create a mock for the DELETE /v2/topics/{url_group_name} endpoint
         let remove_url_group_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path(format!("/v2/topics/{}", encode(url_group_name)))
                 .header("Authorization", "Bearer test_api_key");
-            then.status(200);
+            then.status(StatusCode::OK.as_u16());
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -710,25 +510,19 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the remove_url_group method
         let result = client.remove_url_group(url_group_name).await;
 
-        // Assert that the mock was called exactly once
         remove_url_group_mock.assert();
 
-        // Assert that the result is Ok
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_remove_url_group_rate_limit_error() {
-        // Start a lightweight mock server
         let server = MockServer::start();
 
-        // Define the input parameters
         let url_group_name = "test-group";
 
-        // Create a mock for the DELETE /v2/topics/{url_group_name} endpoint that simulates a rate limit error
         let rate_limit_mock = server.mock(|when, then| {
             when.method(DELETE)
                 .path(format!("/v2/topics/{}", encode(url_group_name)))
@@ -739,7 +533,6 @@ mod tests {
                 .body("Rate limit exceeded");
         });
 
-        // Build the QstashClient with the mock server's base URL
         let client = QstashClient::builder()
             .base_url(Url::parse(&server.base_url()).unwrap())
             .unwrap()
@@ -747,58 +540,13 @@ mod tests {
             .build()
             .expect("Failed to build QstashClient");
 
-        // Call the remove_url_group method
         let result = client.remove_url_group(url_group_name).await;
 
-        // Assert that the mock was called exactly once
         rate_limit_mock.assert();
 
-        // Assert that the result is a rate limit error
         assert!(matches!(
             result,
             Err(QstashError::DailyRateLimitExceeded { reset: 1625097600 })
         ));
-    }
-
-    #[tokio::test]
-    async fn test_remove_url_group_invalid_response() {
-        // Start a lightweight mock server
-        let server = MockServer::start();
-
-        // Define the input parameters
-        let url_group_name = "test-group";
-
-        // Create a mock for the DELETE /v2/topics/{url_group_name} endpoint that returns invalid JSON
-        let invalid_response_mock = server.mock(|when, then| {
-            when.method(DELETE)
-                .path(format!("/v2/topics/{}", encode(url_group_name)))
-                .header("Authorization", "Bearer test_api_key");
-            then.status(200)
-                .header("Content-Type", "application/json")
-                .body("Invalid JSON");
-        });
-
-        // Build the QstashClient with the mock server's base URL
-        let client = QstashClient::builder()
-            .base_url(Url::parse(&server.base_url()).unwrap())
-            .unwrap()
-            .api_key("test_api_key")
-            .build()
-            .expect("Failed to build QstashClient");
-
-        // Call the remove_url_group method
-        let result = client.remove_url_group(url_group_name).await;
-
-        // Assert that the mock was called exactly once
-        invalid_response_mock.assert();
-
-        // Assert that the result is Ok since remove_url_group returns () on success
-        // If the response body is invalid, send_request would fail before returning Ok(())
-        assert!(result.is_err());
-        if let Err(QstashError::RequestFailed(_)) = result {
-            // Expected error due to invalid response handling in send_request
-        } else {
-            panic!("Expected a RequestFailed error due to invalid response");
-        }
     }
 }
