@@ -3,16 +3,27 @@ use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct EventsRequest {
+    /// By providing a cursor you can paginate through all of the events.
     pub cursor: Option<String>,
+    /// Filter events by message id.
     pub message_id: Option<String>,
+    /// Filter events by state.
     pub state: Option<String>,
+    /// Filter events by URL.
     pub url: Option<String>,
+    /// Filter events by topic name.
     pub topic_name: Option<String>,
+    /// Filter events by schedule id.
     pub schedule_id: Option<String>,
+    /// Filter events by queue name.
     pub queue_name: Option<String>,
+    /// Filter events by starting date, in milliseconds (Unix timestamp). This is inclusive.
     pub from_date: Option<i64>,
+    /// Filter events by ending date, in milliseconds (Unix timestamp). This is inclusive.
     pub to_date: Option<i64>,
+    /// The number of events to return. Default and max is 1000.
     pub count: Option<i32>,
+    /// The sorting order of events by timestamp. Valid values are “earliestFirst” and “latestFirst”. The default is “latestFirst”.
     pub order: Option<String>,
 }
 
@@ -66,6 +77,7 @@ impl EventsRequest {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct EventsResponse {
+    /// A cursor which you can use in subsequent requests to paginate through all events. If no cursor is returned, you have reached the end of the events.
     pub cursor: Option<String>,
     pub events: Vec<Event>,
 }
@@ -73,37 +85,56 @@ pub struct EventsResponse {
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Event {
-    // Required fields
+    /// Timestamp of this log entry, in milliseconds
     pub time: i64,
+    /// The associated message id
     pub message_id: String,
+    /// The headers of the message.
     pub header: HashMap<String, Vec<String>>,
     #[serde(
         serialize_with = "serialize_body",
         deserialize_with = "deserialize_body"
     )]
+    /// Body of the message.
     pub body: Vec<u8>,
+    /// The current state of the message at this point in time.
     pub state: EventState,
 
     // Optional fields
+    /// An explanation what went wrong
     pub error: Option<String>,
+    /// The next scheduled time of the message. (Unix timestamp in milliseconds)
     pub next_delivery_time: Option<i64>,
+    /// The destination url
     pub url: Option<String>,
+    /// The name of the URL Group (topic) if this message was sent through a topic
     pub topic_name: Option<String>,
+    /// The name of the endpoint if this message was sent through a URL Group
     pub endpoint_name: Option<i32>,
+    /// The scheduleId of the message if the message is triggered by a schedule
     pub schedule_id: Option<String>,
+    /// The name of the queue if this message is enqueued on a queue
     pub queue_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EventState {
+    /// The message has been accepted and stored in QStash
     Created,
+    /// The task is currently being processed by a worker.
     Active,
+    /// The task has been scheduled to retry.
     Retry,
+    /// The execution threw an error and the task is waiting to be retried or failed.
     Error,
+    /// The message was successfully delivered.
     Delivered,
+    /// The task has errored too many times or encountered an error that it cannot recover from.
     Failed,
+    /// The cancel request from the user is recorded.
     CancelRequested,
+    /// The cancel request from the user is honored.
     Cancelled,
 }
 
