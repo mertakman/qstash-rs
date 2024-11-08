@@ -166,7 +166,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("content-type", HeaderValue::from_static("application/json"));
         let body = b"{\"key\":\"value\"}".to_vec();
-        let expected_response = MessageResponseResult::SingleResponse(MessageResponse {
+        let expected_response = MessageResponseResult::URLResponse(MessageResponse {
             message_id: "msg123".to_string(),
             url: Some("https://example.com/publish".to_string()),
             deduplicated: Some(false),
@@ -201,7 +201,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("content-type", HeaderValue::from_static("application/json"));
         let body = b"{\"key\":\"value\"}".to_vec();
-        let expected_response = MessageResponseResult::MultipleResponses(vec![
+        let expected_response = MessageResponseResult::URLGroupResponse(vec![
             MessageResponse {
                 message_id: "msg123".to_string(),
                 url: Some("https://example.com/publish".to_string()),
@@ -303,7 +303,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("content-type", HeaderValue::from_static("application/json"));
         let body = b"{\"key\":\"value\"}".to_vec();
-        let expected_response = MessageResponseResult::SingleResponse(MessageResponse {
+        let expected_response = MessageResponseResult::URLResponse(MessageResponse {
             message_id: "msg125".to_string(),
             url: Some("https://example.com/enqueue".to_string()),
             deduplicated: Some(false),
@@ -433,12 +433,12 @@ mod tests {
             },
         ];
         let expected_response = vec![
-            MessageResponseResult::SingleResponse(MessageResponse {
+            MessageResponseResult::URLResponse(MessageResponse {
                 message_id: "msg126".to_string(),
                 url: Some("https://example.com/publish1".to_string()),
                 deduplicated: Some(false),
             }),
-            MessageResponseResult::MultipleResponses(vec![
+            MessageResponseResult::URLGroupResponse(vec![
                 MessageResponse {
                     message_id: "msg127".to_string(),
                     url: Some("https://example.com/publish2".to_string()),
@@ -787,7 +787,7 @@ mod tests {
         headers.insert("content-type", HeaderValue::from_static("application/json"));
         headers.insert("X-Custom-Header", HeaderValue::from_static("CustomValue"));
         let body = b"{\"key\":\"value\"}".to_vec();
-        let expected_response = MessageResponseResult::SingleResponse(MessageResponse {
+        let expected_response = MessageResponseResult::URLResponse(MessageResponse {
             message_id: "msg129".to_string(),
             url: Some("https://example.com/publish".to_string()),
             deduplicated: Some(false),
@@ -825,7 +825,7 @@ mod tests {
         headers.insert("content-type", HeaderValue::from_static("text/plain"));
         headers.insert("X-Another-Header", HeaderValue::from_static("AnotherValue"));
         let body = b"Enqueue message".to_vec();
-        let expected_response = MessageResponseResult::SingleResponse(MessageResponse {
+        let expected_response = MessageResponseResult::URLResponse(MessageResponse {
             message_id: "msg130".to_string(),
             url: Some("https://example.com/enqueue".to_string()),
             deduplicated: Some(false),

@@ -14,7 +14,7 @@ impl QstashClient {
         let request = self
             .client
             .get_request_builder(
-                Method::GET,
+                Method::POST,
                 self.base_url
                     .join("/llm/v1/chat/completions")
                     .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
@@ -45,7 +45,7 @@ mod tests {
     use crate::client::QstashClient;
     use crate::errors::QstashError;
     use crate::llm_types::*;
-    use httpmock::Method::GET;
+    use httpmock::Method::POST;
     use httpmock::MockServer;
     use reqwest::StatusCode;
     use reqwest::Url;
@@ -84,7 +84,7 @@ mod tests {
                     content: "Hello! How can I assist you today?".to_string(),
                     name: None,
                 },
-                finish_reason: "stop".to_string(),
+                finish_reason: Some("stop".to_string()),
                 stop_reason: Some("\n".to_string()),
                 index: 0,
                 logprobs: Some(LogProbs {
@@ -111,7 +111,7 @@ mod tests {
             },
         };
         let direct_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -164,7 +164,7 @@ mod tests {
             top_p: Some(0.9),
         };
         let direct_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -214,7 +214,7 @@ mod tests {
             top_p: Some(0.9),
         };
         let direct_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -267,7 +267,7 @@ mod tests {
         {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
         [DONE]";
         let stream_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -330,7 +330,7 @@ mod tests {
             top_p: Some(0.9),
         };
         let stream_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -380,7 +380,7 @@ mod tests {
             top_p: Some(0.9),
         };
         let stream_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);
@@ -437,7 +437,7 @@ mod tests {
         {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
         [DONE]";
         let stream_mock = server.mock(|when, then| {
-            when.method(GET)
+            when.method(POST)
                 .path("/llm/v1/chat/completions")
                 .header("Authorization", "Bearer test_api_key")
                 .json_body_obj(&chat_request);

@@ -74,16 +74,16 @@ impl EventsRequest {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
 pub struct EventsResponse {
     /// A cursor which you can use in subsequent requests to paginate through all events. If no cursor is returned, you have reached the end of the events.
     pub cursor: Option<String>,
     pub events: Vec<Event>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Event {
     /// Timestamp of this log entry, in milliseconds
     pub time: i64,
@@ -117,9 +117,11 @@ pub struct Event {
     pub queue_name: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EventState {
+    #[default]
+    None,
     /// The message has been accepted and stored in QStash
     Created,
     /// The task is currently being processed by a worker.

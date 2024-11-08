@@ -6,14 +6,19 @@ use serde::{Deserialize, Serialize};
 use crate::{client::QstashClient, errors::QstashError};
 
 impl QstashClient {
-    pub async fn dlq_list_messages(&self,query_params: DlqQueryParams) -> Result<DLQMessagesList, QstashError> {
-        let request = self.client.get_request_builder(
-            Method::GET,
-            self.base_url
-                .join("/v2/dlq/")
-                .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
-        )
-        .query(&query_params.to_query_params());
+    pub async fn dlq_list_messages(
+        &self,
+        query_params: DlqQueryParams,
+    ) -> Result<DLQMessagesList, QstashError> {
+        let request = self
+            .client
+            .get_request_builder(
+                Method::GET,
+                self.base_url
+                    .join("/v2/dlq/")
+                    .map_err(|e| QstashError::InvalidRequestUrl(e.to_string()))?,
+            )
+            .query(&query_params.to_query_params());
 
         let response = self
             .client
@@ -90,51 +95,51 @@ pub struct DlqQueryParams {
     // By providing a cursor you can paginate through all of the messages in the DLQ
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cursor: Option<String>,
-    
+
     // Filter DLQ messages by message id
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message_id: Option<String>,
-    
+
     // Filter DLQ messages by url
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-    
+
     // Filter DLQ messages by url group
     #[serde(skip_serializing_if = "Option::is_none")]
     pub topic_name: Option<String>,
-    
+
     // Filter DLQ messages by schedule id
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schedule_id: Option<String>,
-    
+
     // Filter DLQ messages by queue name
     #[serde(skip_serializing_if = "Option::is_none")]
     pub queue_name: Option<String>,
-    
+
     // Filter DLQ messages by API name
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api: Option<String>,
-    
+
     // Filter DLQ messages by starting date, in milliseconds (Unix timestamp). This is inclusive
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_date: Option<i64>,
-    
+
     // Filter DLQ messages by ending date, in milliseconds (Unix timestamp). This is inclusive
     #[serde(skip_serializing_if = "Option::is_none")]
     pub to_date: Option<i64>,
-    
+
     // Filter DLQ messages by HTTP response status code
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_status: Option<i32>,
-    
+
     // Filter DLQ messages by IP address of the publisher
     #[serde(skip_serializing_if = "Option::is_none")]
     pub caller_ip: Option<String>,
-    
+
     // The number of messages to return. Default and maximum is 100
     #[serde(skip_serializing_if = "Option::is_none")]
     pub count: Option<i32>,
-    
+
     // The sorting order of DLQ messages by timestamp. Valid values are "earliestFirst" and "latestFirst"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order: Option<String>,
@@ -143,65 +148,66 @@ pub struct DlqQueryParams {
 impl DlqQueryParams {
     pub fn to_query_params(&self) -> Vec<(String, String)> {
         let mut params = Vec::new();
-        
+
         if let Some(cursor) = &self.cursor {
             params.push(("cursor".to_string(), cursor.clone()));
         }
-        
+
         if let Some(message_id) = &self.message_id {
             params.push(("messageId".to_string(), message_id.clone()));
         }
-        
+
         if let Some(url) = &self.url {
             params.push(("url".to_string(), url.clone()));
         }
-        
+
         if let Some(topic_name) = &self.topic_name {
             params.push(("topicName".to_string(), topic_name.clone()));
         }
-        
+
         if let Some(schedule_id) = &self.schedule_id {
             params.push(("scheduleId".to_string(), schedule_id.clone()));
         }
-        
+
         if let Some(queue_name) = &self.queue_name {
             params.push(("queueName".to_string(), queue_name.clone()));
         }
-        
+
         if let Some(api) = &self.api {
             params.push(("api".to_string(), api.clone()));
         }
-        
+
         if let Some(from_date) = &self.from_date {
             params.push(("fromDate".to_string(), from_date.to_string()));
         }
-        
+
         if let Some(to_date) = &self.to_date {
             params.push(("toDate".to_string(), to_date.to_string()));
         }
-        
+
         if let Some(response_status) = &self.response_status {
             params.push(("responseStatus".to_string(), response_status.to_string()));
         }
-        
+
         if let Some(caller_ip) = &self.caller_ip {
             params.push(("callerIp".to_string(), caller_ip.clone()));
         }
-        
+
         if let Some(count) = &self.count {
             params.push(("count".to_string(), count.to_string()));
         }
-        
+
         if let Some(order) = &self.order {
             params.push(("order".to_string(), order.clone()));
         }
-        
+
         params
     }
 }
 
 /// Represents a paginated response containing a list of messages.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Default, Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct DLQMessagesList {
     /// A cursor which you can use in subsequent requests to paginate through all events.
     /// If no cursor is returned, you have reached the end of the events.
@@ -289,7 +295,7 @@ pub struct DLQMessage {
 
     /// The response header of the last failed delivery attempt.
     #[serde(rename = "responseHeader")]
-    pub response_header: Option<String>,
+    pub response_header: Option<HashMap<String, Vec<String>>>,
 
     /// The response body of the last failed delivery attempt if it is composed of UTF-8 characters only, empty otherwise.
     #[serde(rename = "responseBody")]
@@ -300,7 +306,7 @@ pub struct DLQMessage {
     pub response_body_base64: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DLQDeleteMessagesResponse {
     pub deleted: u32,
 }
@@ -309,7 +315,9 @@ pub struct DLQDeleteMessagesResponse {
 mod tests {
 
     use crate::client::QstashClient;
-    use crate::dead_letter_queue::{DLQDeleteMessagesResponse, DLQMessage, DLQMessagesList, DlqQueryParams};
+    use crate::dead_letter_queue::{
+        DLQDeleteMessagesResponse, DLQMessage, DLQMessagesList, DlqQueryParams,
+    };
     use crate::errors::QstashError;
     use httpmock::Method::{DELETE, GET};
     use httpmock::MockServer;
@@ -345,7 +353,10 @@ mod tests {
                 schedule_id: Some("sched123".to_string()),
                 queue_name: Some("queue1".to_string()),
                 response_status: Some(500),
-                response_header: Some("Header".to_string()),
+                response_header: Some(HashMap::from([(
+                    "responseheader".to_string(),
+                    vec!["exampleresponseheader".to_string()],
+                )])),
                 response_body: Some("Internal Server Error".to_string()),
                 response_body_base64: None,
             }],
@@ -452,7 +463,10 @@ mod tests {
             schedule_id: Some("sched123".to_string()),
             queue_name: Some("queue1".to_string()),
             response_status: Some(500),
-            response_header: Some("Header".to_string()),
+            response_header: Some(HashMap::from([(
+                "responseheader".to_string(),
+                vec!["exampleresponseheader".to_string()],
+            )])),
             response_body: Some("Internal Server Error".to_string()),
             response_body_base64: None,
         };

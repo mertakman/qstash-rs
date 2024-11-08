@@ -98,7 +98,8 @@ impl QstashClient {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Default, Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct UrlGroup {
     created_at: u64,
     updated_at: u64,
@@ -106,11 +107,12 @@ pub struct UrlGroup {
     endpoints: Vec<Endpoint>,
 }
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(Default, Serialize, Clone, Deserialize, Debug)]
+#[serde(default)]
 pub struct Endpoint {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
+    #[serde(skip_serializing_if = "String::is_empty")]
     name: String,
-    #[serde(skip_serializing_if = "String::is_empty", default)]
+    #[serde(skip_serializing_if = "String::is_empty")]
     url: String,
 }
 
@@ -122,10 +124,6 @@ mod tests {
     use reqwest::StatusCode;
     use reqwest::Url;
     use serde_json::json;
-
-    fn encode(input: &str) -> String {
-        urlencoding::encode(input).into_owned()
-    }
 
     #[tokio::test]
     async fn test_upsert_url_group_endpoint_success() {

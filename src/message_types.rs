@@ -3,8 +3,8 @@ use serde::de::{self};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Message {
     pub message_id: String,
     pub topic_name: String,
@@ -28,8 +28,8 @@ pub struct MessageResponse {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum MessageResponseResult {
-    SingleResponse(MessageResponse),
-    MultipleResponses(Vec<MessageResponse>),
+    URLResponse(MessageResponse),
+    URLGroupResponse(Vec<MessageResponse>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -90,7 +90,7 @@ mod tests {
 
         let messages: MessageResponseResult = serde_json::from_str(single_json).unwrap();
         match messages {
-            MessageResponseResult::SingleResponse(message) => {
+            MessageResponseResult::URLResponse(message) => {
                 assert_eq!(message.message_id, "msd_1234");
                 assert_eq!(message.url, Some("https://www.example.com".into()));
             }
@@ -115,7 +115,7 @@ mod tests {
 
         let messages: MessageResponseResult = serde_json::from_str(multiple_json).unwrap();
         match messages {
-            MessageResponseResult::MultipleResponses(messages) => {
+            MessageResponseResult::URLGroupResponse(messages) => {
                 assert_eq!(messages.len(), 2);
                 assert_eq!(messages[0].message_id, "msd_1234");
                 assert_eq!(messages[0].url, Some("https://www.example.com".into()));

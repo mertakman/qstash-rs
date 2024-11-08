@@ -120,8 +120,8 @@ pub struct CreateScheduleResponse {
     pub schedule_id: String,
 }
 /// Represents a single schedule object within the Response array.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Schedule {
     /// The creation time of the object. Unix timestamp in milliseconds.
     pub created_at: i64,
