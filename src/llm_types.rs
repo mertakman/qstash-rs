@@ -239,12 +239,14 @@ impl StreamResponse {
         loop {
             // Now we can mutably borrow self for extract_next_message
             if let Some(message) = self.extract_next_message() {
-                match message.as_slice() {
-                    b"[DONE]" => {
-                        self.response = None;
-                        return Ok(ChunkType::Done());
+                if !message.is_empty(){
+                    match message.as_slice() {
+                        b"[DONE]" => {
+                            self.response = None;
+                            return Ok(ChunkType::Done());
+                        }
+                        _ => return Ok(ChunkType::Message(message)),
                     }
-                    _ => return Ok(ChunkType::Message(message)),
                 }
             }
 
@@ -265,17 +267,21 @@ impl StreamResponse {
 
     // Takes a chunk of bytes and returns a complete message if available
     fn extract_next_message(&mut self) -> Option<Vec<u8>> {
-        if self.buffer == b"[DONE]" {
+        if self.buffer == b"data: [DONE]" {
             self.buffer.clear();
             return Some(b"[DONE]".into());
         }
+
         // Look for delimiter
         if let Some(msg_end) = self.buffer.windows(2).position(|w| w == b"\n\n") {
             // Extract the message (excluding delimiter)
             let message = self.buffer[..msg_end].to_vec();
+            let message = match message.strip_prefix(b"data: "){
+                Some(message) => message.to_vec(),
+                None => return Some(message),
+            };
             // Remove the processed message and delimiter from buffer
             self.buffer = self.buffer[msg_end + 2..].to_vec();
-
             Some(message)
         } else {
             None
@@ -289,9 +295,9 @@ mod tests {
     #[test]
     fn test_extract_next_message_logic() {
         let mut stream_response = StreamResponse::default();
-        let chunk1 = b"{\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n".to_vec();
-        let chunk2 = b"\n{\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n".to_vec();
-        let chunk3 = b"[DONE]".to_vec();
+        let chunk1 = b"data: {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n".to_vec();
+        let chunk2 = b"\ndata: {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n".to_vec();
+        let chunk3 = b"data: [DONE]".to_vec();
 
         stream_response.buffer.extend_from_slice(&chunk1);
         assert!(stream_response.extract_next_message().is_none());
@@ -300,6 +306,7 @@ mod tests {
         assert!(stream_response.extract_next_message().is_some());
 
         stream_response.buffer.extend_from_slice(&chunk3);
+        println!("{:?}", stream_response.buffer.to_ascii_lowercase());
         assert_eq!(
             stream_response.extract_next_message(),
             Some(b"[DONE]".to_vec())

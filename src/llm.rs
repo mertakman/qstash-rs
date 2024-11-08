@@ -262,10 +262,10 @@ mod tests {
             temperature: Some(0.7),
             top_p: Some(0.9),
         };
-        let stream_response = "\
-        {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
-        {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
-        [DONE]";
+        let stream_response = "data: {\"id\": \"chatcmpl-123\", \"object\": \"chat.completion.chunk\", \"created\": 1625097600, \"model\": \"gpt-4\", \"choices\": [{\"delta\": {\"content\": \"Hello\"}, \"finish_reason\": null, \"index\": 0, \"logprobs\": null}]}\n\n\
+        data: {\"id\": \"chatcmpl-123\", \"object\": \"chat.completion.chunk\", \"created\": 1625097600, \"model\": \"gpt-4\", \"choices\": [{\"delta\": {\"content\": \" World\"}, \"finish_reason\": null, \"index\": 0, \"logprobs\": null}]}\n\n\
+        data: [DONE]";
+        
         let stream_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/llm/v1/chat/completions")
@@ -432,10 +432,8 @@ mod tests {
             temperature: Some(0.7),
             top_p: Some(0.9),
         };
-        let stream_response = "\
-        {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
-        {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1625097600,\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"content\":\" World\"},\"finish_reason\":null,\"index\":0,\"logprobs\":null}]}\n\n\
-        [DONE]";
+        let stream_response = "data: {\n  \"id\": \"chatcmpl-123\",\n  \"object\": \"chat.completion.chunk\",\n  \"created\": 1625097600,\n  \"model\": \"gpt-4\",\n  \"choices\": [\n    {\n      \"delta\": {\n        \"content\": \"Hello\"\n      },\n      \"finish_reason\": null,\n      \"index\": 0,\n      \"logprobs\": null\n    }\n  ]\n}\n\ndata: {\n  \"id\": \"chatcmpl-123\",\n  \"object\": \"chat.completion.chunk\",\n  \"created\": 1625097600,\n  \"model\": \"gpt-4\",\n  \"choices\": [\n    {\n      \"delta\": {\n        \"content\": \" World\"\n      },\n      \"finish_reason\": null,\n      \"index\": 0,\n      \"logprobs\": null\n    }\n  ]\n}\n\ndata: [DONE]";
+
         let stream_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/llm/v1/chat/completions")
