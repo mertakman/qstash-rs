@@ -27,13 +27,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:#?}", resp);
 
     println!("Now lets get response as stream of tokens");
-
+    sleep(Duration::from_secs(2)).await;
     let mut chat_completion_request = ChatCompletionRequest::default();
     chat_completion_request.model = "meta-llama/Meta-Llama-3-8B-Instruct".to_string();
-    chat_completion_request.max_tokens = Some(40);
+    chat_completion_request.max_tokens = Some(200);
     chat_completion_request.messages = vec![Message {
         role: "user".to_string(),
-        content: "If you were a comedian, what joke would you tell that would completely flop?"
+        content: "Tell me a funny joke"
             .to_string(),
         name: None,
     }];
@@ -49,15 +49,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Response is not of type StreamedResponse");
         }
     };
-
-    let mut message = String::new();
+    println!("Retrieved response succesfully");
+    println!("Tell me a funny joke");
     while let Some(a) = streamed_response.get_next_stream_message().await? {
         if a.choices[0].delta.content.is_some() {
-            message.push_str(&a.choices[0].delta.content.as_ref().unwrap());
-            print!("\r{}", &message);
-            sleep(Duration::from_millis(250)).await;
+            print!("{}", &a.choices[0].delta.content.as_ref().unwrap());
+            sleep(Duration::from_millis(200)).await;
         }
     }
-    
+    println!();
     Ok(())
 }
