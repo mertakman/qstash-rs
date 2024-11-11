@@ -29,6 +29,7 @@ impl QstashClient {
     }
 }
 
+#[derive(Default)]
 pub struct QstashClientBuilder {
     base_url: Option<Url>,
     api_key: Option<String>,
@@ -64,11 +65,3 @@ impl QstashClientBuilder {
     }
 }
 
-impl Default for QstashClientBuilder {
-    fn default() -> Self {
-        Self {
-            base_url: None,
-            api_key: None,
-        }
-    }
-}

@@ -25,15 +25,15 @@ impl QstashClient {
 
         match chat_completion_request.stream {
             Some(true) => {
-                return Ok(ChatCompletionResponse::Stream(StreamResponse::new(
+                Ok(ChatCompletionResponse::Stream(StreamResponse::new(
                     response,
-                )));
+                )))
             }
             _ => {
                 let response = response
                     .json::<DirectResponse>()
                     .await
-                    .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+                    .map_err(QstashError::ResponseBodyParseError)?;
                 Ok(ChatCompletionResponse::Direct(response))
             }
         }

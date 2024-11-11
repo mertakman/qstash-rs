@@ -22,7 +22,7 @@ impl QstashClient {
             .await?
             .json::<EventsResponse>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }

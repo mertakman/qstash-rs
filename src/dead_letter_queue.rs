@@ -26,7 +26,7 @@ impl QstashClient {
             .await?
             .json::<DLQMessagesList>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -45,7 +45,7 @@ impl QstashClient {
             .await?
             .json::<DLQMessage>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -84,7 +84,7 @@ impl QstashClient {
             .await?
             .json::<DLQDeleteMessagesResponse>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }

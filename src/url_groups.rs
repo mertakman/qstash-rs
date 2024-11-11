@@ -40,7 +40,7 @@ impl QstashClient {
             .await?
             .json::<UrlGroup>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -58,7 +58,7 @@ impl QstashClient {
             .await?
             .json::<Vec<UrlGroup>>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }

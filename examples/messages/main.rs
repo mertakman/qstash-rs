@@ -1,5 +1,5 @@
 use http::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
+    header::CONTENT_TYPE,
     HeaderValue,
 };
 use qstash_rs::{client::QstashClient, message_types::MessageResponseResult};

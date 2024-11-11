@@ -31,7 +31,7 @@ impl QstashClient {
             .await?
             .json::<CreateScheduleResponse>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -50,7 +50,7 @@ impl QstashClient {
             .await?
             .json::<Schedule>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -69,7 +69,7 @@ impl QstashClient {
             .await?
             .json::<Vec<Schedule>>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }

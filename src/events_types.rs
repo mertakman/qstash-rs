@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_deserialize_minimal_event() {
         let json_str = json!({
-            "time": 1645564800000 as i64,
+            "time": 1645564800000_i64,
             "messageId": "msg_123",
             "header": {},
             "body": "SGVsbG8=",

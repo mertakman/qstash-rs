@@ -29,7 +29,7 @@ impl QstashClient {
             .await?
             .json::<MessageResponseResult>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -58,7 +58,7 @@ impl QstashClient {
             .await?
             .json::<MessageResponseResult>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -83,7 +83,7 @@ impl QstashClient {
             .await?
             .json::<Vec<MessageResponseResult>>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -102,7 +102,7 @@ impl QstashClient {
             .await?
             .json::<Message>()
             .await
-            .map_err(|e| QstashError::ResponseBodyParseError(e))?;
+            .map_err(QstashError::ResponseBodyParseError)?;
 
         Ok(response)
     }
@@ -310,7 +310,7 @@ mod tests {
         });
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(&format!(
+                .path(format!(
                     "/v2/enqueue/{}/https://example.com/enqueue",
                     queue_name
                 ))
@@ -346,7 +346,7 @@ mod tests {
         let body = b"{\"key\":\"value\"}".to_vec();
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(&format!(
+                .path(format!(
                     "/v2/enqueue/{}/https://example.com/enqueue",
                     queue_name
                 ))
@@ -382,7 +382,7 @@ mod tests {
         let body = b"{\"key\":\"value\"}".to_vec();
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(&format!(
+                .path(format!(
                     "/v2/enqueue/{}/https://example.com/enqueue",
                     queue_name
                 ))
@@ -600,7 +600,7 @@ mod tests {
         };
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", message_id))
+                .path(format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
@@ -625,7 +625,7 @@ mod tests {
         let message_id = "msg123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", message_id))
+                .path(format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -652,7 +652,7 @@ mod tests {
         let message_id = "msg123";
         let get_mock = server.mock(|when, then| {
             when.method(GET)
-                .path(&format!("/v2/messages/{}", message_id))
+                .path(format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::OK.as_u16())
                 .header("content-type", "application/json")
@@ -678,7 +678,7 @@ mod tests {
         let message_id = "msg123";
         let cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(&format!("/v2/messages/{}", message_id))
+                .path(format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::NO_CONTENT.as_u16());
         });
@@ -699,7 +699,7 @@ mod tests {
         let message_id = "msg123";
         let cancel_mock = server.mock(|when, then| {
             when.method(DELETE)
-                .path(&format!("/v2/messages/{}", message_id))
+                .path(format!("/v2/messages/{}", message_id))
                 .header("Authorization", "Bearer test_api_key");
             then.status(StatusCode::TOO_MANY_REQUESTS.as_u16())
                 .header("RateLimit-Limit", "1000")
@@ -832,7 +832,7 @@ mod tests {
         });
         let enqueue_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(&format!(
+                .path(format!(
                     "/v2/enqueue/{}/https://example.com/enqueue",
                     queue_name
                 ))
